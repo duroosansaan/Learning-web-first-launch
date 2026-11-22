@@ -1,0 +1,3554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>Interactive Physics - [Simulation1.ip]</title>
+<style>
+  :root {
+    --win-bg: #C0C0C0;
+    --win-bg-light: #D4D0C8;
+    --win-white: #FFFFFF;
+    --win-shadow: #808080;
+    --win-dark: #404040;
+    --win-black: #000000;
+    --win-blue: #000080;
+    --win-blue-grad: #1084D0;
+  }
+
+  * {
+    box-sizing: border-box;
+    user-select: none;
+    -webkit-user-select: none;
+    font-family: "Tahoma", "MS Sans Serif", "Segoe UI", Arial, sans-serif;
+    font-size: 11px;
+  }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background-color: var(--win-bg);
+    display: flex;
+    flex-direction: column;
+    touch-action: none;
+  }
+
+  /* Classic Windows 98/XP 3D Bevels */
+  .bevel-out {
+    background-color: var(--win-bg);
+    border-top: 1px solid var(--win-white);
+    border-left: 1px solid var(--win-white);
+    border-right: 1px solid var(--win-black);
+    border-bottom: 1px solid var(--win-black);
+    box-shadow: inset -1px -1px 0 var(--win-shadow), inset 1px 1px 0 #DFDFDF;
+  }
+
+  .bevel-in {
+    background-color: var(--win-white);
+    border-top: 1px solid var(--win-shadow);
+    border-left: 1px solid var(--win-shadow);
+    border-right: 1px solid var(--win-white);
+    border-bottom: 1px solid var(--win-white);
+    box-shadow: inset 1px 1px 0 var(--win-black), inset -1px -1px 0 #DFDFDF;
+  }
+
+  .win-btn {
+    background-color: var(--win-bg);
+    border-top: 1px solid var(--win-white);
+    border-left: 1px solid var(--win-white);
+    border-right: 1px solid var(--win-black);
+    border-bottom: 1px solid var(--win-black);
+    box-shadow: inset -1px -1px 0 var(--win-shadow);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2px 6px;
+    color: #000;
+    gap: 3px;
+  }
+
+  .win-btn:active, .win-btn.active {
+    border-top: 1px solid var(--win-black);
+    border-left: 1px solid var(--win-black);
+    border-right: 1px solid var(--win-white);
+    border-bottom: 1px solid var(--win-white);
+    box-shadow: inset 1px 1px 0 var(--win-shadow);
+    background-color: #B4B4B4;
+    padding-top: 3px;
+    padding-left: 7px;
+  }
+
+  .win-btn:disabled {
+    color: var(--win-shadow);
+    text-shadow: 1px 1px 0 var(--win-white);
+    cursor: not-allowed;
+  }
+
+  /* Title Bar */
+  #app-titlebar {
+    height: 22px;
+    background: linear-gradient(90deg, var(--win-blue) 0%, var(--win-blue-grad) 100%);
+    color: #fff;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 4px;
+    flex-shrink: 0;
+  }
+
+  .title-left {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+
+  .title-controls {
+    display: flex;
+    gap: 2px;
+  }
+
+  .title-ctrl-btn {
+    width: 16px;
+    height: 14px;
+    padding: 0;
+    font-size: 9px;
+    font-weight: bold;
+    line-height: 1;
+  }
+
+  /* Classic Menu Bar */
+  #menubar {
+    height: 22px;
+    background-color: var(--win-bg);
+    border-bottom: 1px solid var(--win-shadow);
+    display: flex;
+    align-items: center;
+    padding: 0 3px;
+    position: relative;
+    z-index: 600;
+    overflow-x: auto;
+    flex-shrink: 0;
+  }
+
+  .menu-item {
+    padding: 2px 7px;
+    cursor: pointer;
+    color: #000;
+    white-space: nowrap;
+  }
+
+  .menu-item:hover, .menu-item.open {
+    background-color: var(--win-blue);
+    color: #fff;
+  }
+
+  .dropdown-menu {
+    position: fixed;
+    background-color: var(--win-bg);
+    border-top: 1px solid var(--win-white);
+    border-left: 1px solid var(--win-white);
+    border-right: 1px solid var(--win-black);
+    border-bottom: 1px solid var(--win-black);
+    box-shadow: inset -1px -1px 0 var(--win-shadow), 2px 2px 5px rgba(0,0,0,0.4);
+    min-width: 215px;
+    padding: 2px;
+    z-index: 2000;
+    display: none;
+  }
+
+  .dropdown-entry {
+    padding: 4px 16px 4px 22px;
+    cursor: pointer;
+    color: #000;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: relative;
+    white-space: nowrap;
+  }
+
+  .dropdown-entry:hover {
+    background-color: var(--win-blue);
+    color: #fff;
+  }
+
+  .dropdown-entry.checked::before {
+    content: "✓";
+    position: absolute;
+    left: 6px;
+    font-weight: bold;
+  }
+
+  .dropdown-sub-label {
+    padding: 3px 8px;
+    font-weight: bold;
+    color: var(--win-blue);
+    background: #D8D8D8;
+  }
+
+  .dropdown-sep {
+    height: 1px;
+    background-color: var(--win-shadow);
+    border-bottom: 1px solid var(--win-white);
+    margin: 3px 2px;
+  }
+
+  /* Standard Top Toolbar */
+  #top-toolbar {
+    min-height: 30px;
+    background-color: var(--win-bg);
+    border-top: 1px solid var(--win-white);
+    border-bottom: 1px solid var(--win-shadow);
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 2px;
+    padding: 2px 5px;
+    flex-shrink: 0;
+  }
+
+  .tb-sep {
+    width: 2px;
+    height: 20px;
+    border-left: 1px solid var(--win-shadow);
+    border-right: 1px solid var(--win-white);
+    margin: 0 3px;
+  }
+
+  .tb-btn {
+    height: 24px;
+    padding: 2px 6px;
+    font-weight: normal;
+  }
+
+  .run-btn {
+    font-weight: bold;
+    min-width: 54px;
+    height: 24px;
+  }
+
+  .speed-box {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 0 4px;
+    height: 24px;
+  }
+
+  /* Main MDI Workspace Container */
+  #workspace-container {
+    flex: 1;
+    display: flex;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* Authentic 2-Column Left Tool Palette */
+  #left-palette {
+    width: 62px;
+    background-color: var(--win-bg);
+    border-right: 1px solid var(--win-shadow);
+    padding: 3px;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    align-content: start;
+    gap: 2px;
+    overflow-y: auto;
+    z-index: 80;
+    flex-shrink: 0;
+  }
+
+  .tool-btn {
+    width: 26px;
+    height: 26px;
+    padding: 2px;
+  }
+
+  .tool-btn svg {
+    width: 18px;
+    height: 18px;
+    pointer-events: none;
+  }
+
+  /* Canvas Area */
+  #canvas-wrapper {
+    flex: 1;
+    position: relative;
+    background-color: #FFFFFF;
+    overflow: hidden;
+  }
+
+  #sim-canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    cursor: crosshair;
+  }
+
+  /* Floating Classic Windows (Properties, Measure, Script) */
+  .floating-win {
+    position: absolute;
+    background-color: var(--win-bg);
+    border-top: 2px solid var(--win-white);
+    border-left: 2px solid var(--win-white);
+    border-right: 2px solid var(--win-black);
+    border-bottom: 2px solid var(--win-black);
+    box-shadow: inset -1px -1px 0 var(--win-shadow), 3px 3px 8px rgba(0,0,0,0.35);
+    z-index: 300;
+    max-width: 94vw;
+  }
+
+  .floating-header {
+    height: 20px;
+    background: linear-gradient(90deg, var(--win-blue) 0%, var(--win-blue-grad) 100%);
+    color: #fff;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 4px;
+    cursor: move;
+  }
+
+  .win-close-btn {
+    width: 15px;
+    height: 14px;
+    font-size: 9px;
+    line-height: 1;
+    padding: 0;
+    font-weight: bold;
+  }
+
+  .floating-body {
+    padding: 6px;
+    max-height: 70vh;
+    overflow-y: auto;
+  }
+
+  /* Classic Windows Tabs */
+  .win-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--win-white);
+    margin-bottom: 6px;
+    gap: 1px;
+  }
+
+  .win-tab {
+    padding: 3px 7px;
+    background: #B8B8B8;
+    border-top: 1px solid var(--win-white);
+    border-left: 1px solid var(--win-white);
+    border-right: 1px solid var(--win-black);
+    cursor: pointer;
+    font-size: 10px;
+  }
+
+  .win-tab.active {
+    background: var(--win-bg);
+    font-weight: bold;
+    margin-bottom: -1px;
+    padding-bottom: 4px;
+  }
+
+  .prop-grid {
+    display: grid;
+    grid-template-columns: 98px 1fr;
+    gap: 4px 6px;
+    align-items: center;
+  }
+
+  .prop-input {
+    width: 100%;
+    height: 20px;
+    padding: 1px 4px;
+    font-family: "Consolas", "Courier New", monospace;
+    font-size: 11px;
+    color: #000;
+  }
+
+  .prop-section {
+    grid-column: 1 / -1;
+    font-weight: bold;
+    color: var(--win-blue);
+    border-bottom: 1px solid var(--win-shadow);
+    margin-top: 3px;
+    padding-bottom: 1px;
+  }
+
+  /* Measure Window & Strip Chart */
+  #measure-window {
+    width: 310px;
+    left: 16px;
+    bottom: 12px;
+  }
+
+  .digital-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: #000;
+    color: #00FF66;
+    font-family: "Consolas", "Courier New", monospace;
+    margin-bottom: 5px;
+  }
+
+  .digital-table td {
+    padding: 2px 5px;
+    border: 1px solid #2A2A2A;
+    font-size: 11px;
+  }
+
+  .digital-table td.lbl {
+    color: #A0E0FF;
+    width: 48%;
+  }
+
+  .digital-table td.val {
+    text-align: right;
+    font-weight: bold;
+  }
+
+  #measure-graph {
+    width: 100%;
+    height: 115px;
+    background: #FFFFFF;
+    display: block;
+  }
+
+  .legend-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 4px;
+    font-size: 10px;
+  }
+
+  .legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+  }
+
+  .legend-swatch {
+    width: 10px;
+    height: 3px;
+    display: inline-block;
+  }
+
+  /* Modal Dialog */
+  #modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.28);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 3000;
+  }
+
+  #modal-box {
+    width: 340px;
+    max-width: 92vw;
+  }
+
+  /* Bottom Status Bar */
+  #statusbar {
+    min-height: 22px;
+    background-color: var(--win-bg);
+    border-top: 1px solid var(--win-white);
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 3px;
+    padding: 2px 4px;
+    flex-shrink: 0;
+  }
+
+  .status-pane {
+    padding: 1px 6px;
+    background-color: var(--win-bg);
+    border-top: 1px solid var(--win-shadow);
+    border-left: 1px solid var(--win-shadow);
+    border-right: 1px solid var(--win-white);
+    border-bottom: 1px solid var(--win-white);
+    font-family: "Consolas", "Courier New", monospace;
+    font-size: 11px;
+    white-space: nowrap;
+  }
+
+  /* Mobile Ergonomics */
+  @media (max-width: 720px) {
+    #left-palette {
+      width: 56px;
+    }
+    .tool-btn {
+      width: 24px;
+      height: 24px;
+    }
+    #props-window {
+      width: 215px !important;
+      top: 24px !important;
+      right: 4px !important;
+    }
+    #measure-window {
+      width: 265px !important;
+      left: 4px !important;
+      bottom: 4px !important;
+    }
+  }
+</style>
+</head>
+<body>
+
+  <!-- Classic Windows MDI Title Bar -->
+  <div id="app-titlebar">
+    <div class="title-left">
+      <svg width="14" height="14" viewBox="0 0 16 16">
+        <rect x="1" y="1" width="14" height="14" fill="#FFD700" stroke="#000"/>
+        <circle cx="8" cy="8" r="4" fill="#000080"/>
+        <line x1="2" y1="14" x2="14" y2="2" stroke="#CC0000" stroke-width="1.5"/>
+      </svg>
+      <span id="window-title-text">Interactive Physics - [Problem8_Incline_Spring.ip]</span>
+    </div>
+    <div class="title-controls">
+      <button class="win-btn title-ctrl-btn" title="Minimize Windows" onclick="app.collapseFloatingWindows()">_</button>
+      <button class="win-btn title-ctrl-btn" title="Reset Window Layout" onclick="app.resetLayout()">□</button>
+      <button class="win-btn title-ctrl-btn" title="New Simulation" onclick="app.newWorld()">X</button>
+    </div>
+  </div>
+
+  <!-- Classic Menu Bar -->
+  <div id="menubar">
+    <div class="menu-item" data-menu="file">File</div>
+    <div class="menu-item" data-menu="edit">Edit</div>
+    <div class="menu-item" data-menu="world">World</div>
+    <div class="menu-item" data-menu="object">Object</div>
+    <div class="menu-item" data-menu="define">Define</div>
+    <div class="menu-item" data-menu="measure">Measure</div>
+    <div class="menu-item" data-menu="window">Window</div>
+    <div class="menu-item" data-menu="help">Help</div>
+  </div>
+
+  <!-- File Menu -->
+  <div id="dropdown-file" class="dropdown-menu">
+    <div class="dropdown-entry" onclick="app.newWorld()">New World<span>Ctrl+N</span></div>
+    <div class="dropdown-entry" onclick="app.triggerOpenJSON()">Open JSON...<span>Ctrl+O</span></div>
+    <div class="dropdown-entry" onclick="app.saveJSON()">Save JSON<span>Ctrl+S</span></div>
+    <div class="dropdown-entry" onclick="app.exportCSV()">Export CSV Data</div>
+    <div class="dropdown-sep"></div>
+    <div class="dropdown-sub-label">Simulation Presets</div>
+    <div class="dropdown-entry" onclick="app.loadPreset('prob8_friction')">Problem #8: Spring & Incline (μ=0.40)</div>
+    <div class="dropdown-entry" onclick="app.loadPreset('prob8_no_friction')">Problem #8: Frictionless (μ=0.00)</div>
+    <div class="dropdown-entry" onclick="app.loadPreset('pendulum_collision')">Pendulum & Elastic Collision</div>
+    <div class="dropdown-entry" onclick="app.loadPreset('pulley_atwood')">Pulley & Atwood Machine</div>
+    <div class="dropdown-entry" onclick="app.loadPreset('projectile_drag')">Projectile Motion & Air Drag</div>
+    <div class="dropdown-entry" onclick="app.loadPreset('double_spring')">Coupled Double Spring Oscillator</div>
+    <div class="dropdown-entry" onclick="app.loadPreset('car_ramp')">Wheeled Car Rolling Down Ramp</div>
+  </div>
+
+  <!-- Edit Menu -->
+  <div id="dropdown-edit" class="dropdown-menu">
+    <div class="dropdown-entry" onclick="app.undo()">Undo<span>Ctrl+Z</span></div>
+    <div class="dropdown-entry" onclick="app.duplicateSelected()">Duplicate Selected<span>Ctrl+D</span></div>
+    <div class="dropdown-entry" onclick="app.deleteSelected()">Delete Selected<span>Del</span></div>
+    <div class="dropdown-sep"></div>
+    <div class="dropdown-entry" onclick="app.selectAll()">Select All<span>Ctrl+A</span></div>
+    <div class="dropdown-entry" onclick="app.newWorld()">Clear World</div>
+  </div>
+
+  <!-- World Menu -->
+  <div id="dropdown-world" class="dropdown-menu">
+    <div class="dropdown-sub-label">Gravity</div>
+    <div id="chk-grav-earth" class="dropdown-entry checked" onclick="app.setGravity(9.8)">Earth (9.80 m/s²)</div>
+    <div id="chk-grav-moon" class="dropdown-entry" onclick="app.setGravity(1.62)">Moon (1.62 m/s²)</div>
+    <div id="chk-grav-zero" class="dropdown-entry" onclick="app.setGravity(0)">Zero-G (0.00 m/s²)</div>
+    <div class="dropdown-entry" onclick="app.openGravityDialog()">Custom Gravity...</div>
+    <div class="dropdown-sep"></div>
+    <div class="dropdown-sub-label">Air Resistance</div>
+    <div id="chk-drag-off" class="dropdown-entry checked" onclick="app.setAirDrag(0)">Off (Vacuum)</div>
+    <div id="chk-drag-low" class="dropdown-entry" onclick="app.setAirDrag(0.08)">Low Air Drag</div>
+    <div id="chk-drag-high" class="dropdown-entry" onclick="app.setAirDrag(0.35)">High Air Drag</div>
+    <div class="dropdown-sep"></div>
+    <div id="chk-electro" class="dropdown-entry" onclick="app.toggleOption('electrostatics')">Electrostatics (Coulomb)</div>
+    <div class="dropdown-sep"></div>
+    <div id="chk-grid" class="dropdown-entry checked" onclick="app.toggleOption('showGrid')">Grid Lines</div>
+    <div id="chk-snap" class="dropdown-entry" onclick="app.toggleOption('snapToGrid')">Snap to Grid (0.1 m)</div>
+    <div id="chk-rulers" class="dropdown-entry checked" onclick="app.toggleOption('showRulers')">Workspace Rulers</div>
+    <div id="chk-axes" class="dropdown-entry checked" onclick="app.toggleOption('showAxes')">X / Y Axes</div>
+    <div class="dropdown-sep"></div>
+    <div class="dropdown-entry" onclick="app.openAccuracyDialog()">Simulation Accuracy (dt)...</div>
+  </div>
+
+  <!-- Object Menu -->
+  <div id="dropdown-object" class="dropdown-menu">
+    <div class="dropdown-entry" onclick="app.bringToFront()">Move to Front</div>
+    <div class="dropdown-entry" onclick="app.sendToBack()">Move to Back</div>
+    <div class="dropdown-sep"></div>
+    <div class="dropdown-entry" onclick="app.toggleAnchorSelected()">Anchor / Unanchor Selected</div>
+    <div class="dropdown-entry" onclick="app.toggleShapeSelected()">Make Square / Circle</div>
+    <div class="dropdown-entry" onclick="app.resetSelectedVelocities()">Reset Velocities (Vx=Vy=ω=0)</div>
+  </div>
+
+  <!-- Define Menu -->
+  <div id="dropdown-define" class="dropdown-menu">
+    <div class="dropdown-sub-label">Vector Overlays</div>
+    <div id="chk-vec-all" class="dropdown-entry checked" onclick="app.toggleAllVectors()">Show Vectors</div>
+    <div id="chk-vec-vel" class="dropdown-entry checked" onclick="app.toggleOption('vecVel')">Velocity v (Blue)</div>
+    <div id="chk-vec-acc" class="dropdown-entry" onclick="app.toggleOption('vecAcc')">Acceleration a (Purple)</div>
+    <div id="chk-vec-force" class="dropdown-entry checked" onclick="app.toggleOption('vecForce')">Total Net Force F (Red)</div>
+    <div id="chk-vec-grav" class="dropdown-entry" onclick="app.toggleOption('vecGrav')">Gravity mg (Dark Green)</div>
+    <div id="chk-vec-norm" class="dropdown-entry checked" onclick="app.toggleOption('vecNorm')">Normal Force N (Cyan)</div>
+    <div id="chk-vec-fric" class="dropdown-entry checked" onclick="app.toggleOption('vecFric')">Friction Force fk (Orange)</div>
+    <div class="dropdown-entry" onclick="app.openVectorScaleDialog()">Vector Display Scale...</div>
+    <div class="dropdown-sep"></div>
+    <div class="dropdown-sub-label">Tracking</div>
+    <div id="chk-track" class="dropdown-entry checked" onclick="app.toggleOption('tracking')">Show Trace Path</div>
+    <div id="chk-com" class="dropdown-entry checked" onclick="app.toggleOption('showCOM')">Center of Mass Marker</div>
+    <div class="dropdown-entry" onclick="app.clearTrails()">Clear Trace Path</div>
+  </div>
+
+  <!-- Measure Menu -->
+  <div id="dropdown-measure" class="dropdown-menu">
+    <div class="dropdown-entry" onclick="app.setMeasureMode('position')">Position (X, Y, θ)</div>
+    <div class="dropdown-entry" onclick="app.setMeasureMode('velocity')">Velocity (Vx, Vy, |V|, ω)</div>
+    <div class="dropdown-entry" onclick="app.setMeasureMode('acceleration')">Acceleration (Ax, Ay, |A|)</div>
+    <div class="dropdown-sep"></div>
+    <div class="dropdown-entry" onclick="app.setMeasureMode('energy')">Energy (K, Ug, Us, Total E, Loss)</div>
+    <div class="dropdown-entry" onclick="app.setMeasureMode('momentum')">Momentum (Px, Py, L)</div>
+    <div class="dropdown-entry" onclick="app.setMeasureMode('forces')">Forces (Fnet, Normal N, Friction fk)</div>
+    <div class="dropdown-sep"></div>
+    <div class="dropdown-entry" onclick="app.setMeasureMode('dashboard')">All Meters Dashboard</div>
+  </div>
+
+  <!-- Window Menu -->
+  <div id="dropdown-window" class="dropdown-menu">
+    <div id="chk-win-props" class="dropdown-entry checked" onclick="app.toggleFloatingWin('props-window', 'chk-win-props')">Properties Window</div>
+    <div id="chk-win-meas" class="dropdown-entry checked" onclick="app.toggleFloatingWin('measure-window', 'chk-win-meas')">Measure Graph Window</div>
+    <div class="dropdown-entry" onclick="app.openScriptInspector()">Script / Formula Inspector</div>
+    <div class="dropdown-sep"></div>
+    <div class="dropdown-entry" onclick="app.cascadeWindows()">Cascade Windows</div>
+    <div class="dropdown-entry" onclick="app.resetLayout()">Reset Layout</div>
+  </div>
+
+  <!-- Help Menu -->
+  <div id="dropdown-help" class="dropdown-menu">
+    <div class="dropdown-entry" onclick="app.openHelpDialog()">Quick Guide & Controls</div>
+    <div class="dropdown-entry" onclick="app.openEngineInfoDialog()">Physics Engine Info</div>
+  </div>
+
+  <!-- Standard Top Toolbar -->
+  <div id="top-toolbar">
+    <button class="win-btn tb-btn" title="New World" onclick="app.newWorld()">New</button>
+    <button class="win-btn tb-btn" title="Open JSON" onclick="app.triggerOpenJSON()">Open</button>
+    <button class="win-btn tb-btn" title="Save JSON" onclick="app.saveJSON()">Save</button>
+    <div class="tb-sep"></div>
+    <button id="btn-run" class="win-btn run-btn" onclick="app.startSim()" title="Run Simulation (Space)">
+      <svg width="11" height="11" viewBox="0 0 12 12"><polygon points="2,1 11,6 2,11" fill="#008800"/></svg>
+      Run
+    </button>
+    <button id="btn-stop" class="win-btn run-btn" onclick="app.stopSim()" disabled title="Stop / Pause">
+      <svg width="11" height="11" viewBox="0 0 12 12"><rect x="2" y="2" width="8" height="8" fill="#CC0000"/></svg>
+      Stop
+    </button>
+    <button id="btn-reset" class="win-btn run-btn" onclick="app.resetSim()" title="Reset to Initial State">
+      <svg width="11" height="11" viewBox="0 0 12 12"><rect x="1" y="2" width="2" height="8" fill="#000"/><polygon points="10,2 4,6 10,10" fill="#000"/></svg>
+      Reset
+    </button>
+    <button class="win-btn tb-btn" title="Step One Frame Forward" onclick="app.stepSim()">Step &gt;|</button>
+    <div class="tb-sep"></div>
+    <button class="win-btn tb-btn" title="Zoom In" onclick="app.zoom(1.2)">Zoom+</button>
+    <button class="win-btn tb-btn" title="Zoom Out" onclick="app.zoom(0.833)">Zoom-</button>
+    <button class="win-btn tb-btn" title="Fit View" onclick="app.fitView()">Fit</button>
+    <div class="tb-sep"></div>
+    <button id="tb-grid" class="win-btn tb-btn active" title="Toggle Grid" onclick="app.toggleOption('showGrid')">Grid</button>
+    <button id="tb-snap" class="win-btn tb-btn" title="Toggle Snap to Grid" onclick="app.toggleOption('snapToGrid')">Snap</button>
+    <button id="tb-trace" class="win-btn tb-btn active" title="Toggle Motion Trace" onclick="app.toggleOption('tracking')">Trace</button>
+    <button id="tb-vec" class="win-btn tb-btn active" title="Toggle Vector Overlays" onclick="app.toggleAllVectors()">Vectors</button>
+    <button id="tb-props" class="win-btn tb-btn active" title="Toggle Properties Window" onclick="app.toggleFloatingWin('props-window', 'chk-win-props')">Props</button>
+    <button id="tb-meas" class="win-btn tb-btn active" title="Toggle Measure Window" onclick="app.toggleFloatingWin('measure-window', 'chk-win-meas')">Measure</button>
+    <div class="tb-sep"></div>
+    <div class="bevel-in speed-box">
+      <span id="tb-time-readout" style="font-family:Consolas,monospace; font-weight:bold;">Time: 0.00 s</span>
+      <span style="color:#666;">|</span>
+      <span id="tb-frame-readout" style="font-family:Consolas,monospace;">F:0</span>
+      <span style="color:#666;">|</span>
+      <label for="sim-speed">Speed:</label>
+      <input id="sim-speed" type="range" min="0.25" max="2.0" step="0.25" value="1.0" style="width:54px; height:12px;" oninput="app.setSimSpeed(this.value)">
+      <span id="sim-speed-val" style="font-family:Consolas,monospace;">1.0x</span>
+    </div>
+  </div>
+
+  <!-- Hidden file input for Open JSON -->
+  <input type="file" id="json-file-input" accept=".json,.ip" style="display:none;" onchange="app.handleOpenJSONFile(event)" />
+
+  <!-- Main MDI Workspace -->
+  <div id="workspace-container">
+    <!-- Authentic 2-Column Left Tool Palette (16 Classic Tools) -->
+    <div id="left-palette">
+      <button class="win-btn tool-btn active" data-tool="select" title="Select / Drag / Resize / Rotate">
+        <svg viewBox="0 0 20 20"><polygon points="4,2 4,16 8,12 11,18 13,17 10,11 15,11" fill="#000"/></svg>
+      </button>
+      <button class="win-btn tool-btn" data-tool="pan" title="Pan / Hand Tool">
+        <svg viewBox="0 0 20 20"><path d="M10 2v16M2 10h16M10 2l-2 2M10 2l2 2M10 18l-2-2M10 18l2-2M2 10l2-2M2 10l2 2M18 10l-2-2M18 10l-2 2" stroke="#000" stroke-width="1.5" fill="none"/></svg>
+      </button>
+      <button class="win-btn tool-btn" data-tool="zoom" title="Zoom Tool (Click to Zoom In, Alt+Click Out)">
+        <svg viewBox="0 0 20 20"><circle cx="8.5" cy="8.5" r="5.5" fill="#FFF" stroke="#000" stroke-width="1.6"/><line x1="12.5" y1="12.5" x2="17.5" y2="17.5" stroke="#000" stroke-width="2.2"/><line x1="6" y1="8.5" x2="11" y2="8.5" stroke="#000" stroke-width="1.3"/><line x1="8.5" y1="6" x2="8.5" y2="11" stroke="#000" stroke-width="1.3"/></svg>
+      </button>
+      <button class="win-btn tool-btn" data-tool="rect" title="Rectangle Body">
+        <svg viewBox="0 0 20 20"><rect x="3" y="5" width="14" height="10" fill="#A6CAF0" stroke="#000" stroke-width="1.5"/></svg>
+      </button>
+      <button class="win-btn tool-btn" data-tool="circle" title="Circle / Disk Body">
+        <svg viewBox="0 0 20 20"><circle cx="10" cy="10" r="7" fill="#FFCC66" stroke="#000" stroke-width="1.5"/><line x1="10" y1="10" x2="16" y2="10" stroke="#000" stroke-width="1.2"/></svg>
+      </button>
+      <button class="win-btn tool-btn" data-tool="polygon" title="Polygon Body (Click vertices, Double-Click/Tap to close)">
+        <svg viewBox="0 0 20 20"><polygon points="10,2 18,8 15,17 5,17 2,8" fill="#99EE99" stroke="#000" stroke-width="1.5"/></svg>
+      </button>
+      <button class="win-btn tool-btn" data-tool="anchor" title="Fixed Anchor (Nail/Ground Pin)">
+        <svg viewBox="0 0 20 20"><line x1="10" y1="3" x2="10" y2="15" stroke="#000" stroke-width="2"/><path d="M5 12 Q10 18 15 12" fill="none" stroke="#000" stroke-width="2"/><circle cx="10" cy="4" r="2.2" fill="#CC0000"/></svg>
+      </button>
+      <button class="win-btn tool-btn" data-tool="pin" title="Pin Joint / Revolute Hinge">
+        <svg viewBox="0 0 20 20"><circle cx="10" cy="10" r="5" fill="#FFF" stroke="#000" stroke-width="1.8"/><circle cx="10" cy="10" r="1.8" fill="#CC0000"/></svg>
+      </button>
+      <button class="win-btn tool-btn" data-tool="rod" title="Rigid Rod (Fixed-Distance Link)">
+        <svg viewBox="0 0 20 20"><line x1="4" y1="16" x2="16" y2="4" stroke="#000" stroke-width="2.5"/><circle cx="4" cy="16" r="2.3" fill="#FFF" stroke="#000"/><circle cx="16" cy="4" r="2.3" fill="#FFF" stroke="#000"/></svg>
+      </button>
+      <button class="win-btn tool-btn" data-tool="rope" title="Rope / Cord (Inextensible Taut-Only)">
+        <svg viewBox="0 0 20 20"><path d="M3 16 Q10 13 17 4" fill="none" stroke="#8B4513" stroke-width="2" stroke-dasharray="2.5,1.5"/><circle cx="3" cy="16" r="2" fill="#000"/><circle cx="17" cy="4" r="2" fill="#000"/></svg>
+      </button>
+      <button class="win-btn tool-btn" data-tool="pulley" title="Pulley System (Click Body A, Pulley Anchor, Body B)">
+        <svg viewBox="0 0 20 20"><circle cx="10" cy="6" r="4" fill="#D0D0D0" stroke="#000" stroke-width="1.5"/><line x1="6" y1="6" x2="6" y2="17" stroke="#8B4513" stroke-width="1.5"/><line x1="14" y1="6" x2="14" y2="17" stroke="#8B4513" stroke-width="1.5"/></svg>
+      </button>
+      <button class="win-btn tool-btn" data-tool="spring" title="Helical Spring (Hooke's Law)">
+        <svg viewBox="0 0 20 20"><polyline points="2,10 5,10 6.5,5 9,15 11.5,5 14,15 15.5,10 18,10" fill="none" stroke="#000080" stroke-width="1.6"/></svg>
+      </button>
+      <button class="win-btn tool-btn" data-tool="damper" title="Damper / Shock Absorber">
+        <svg viewBox="0 0 20 20"><line x1="2" y1="10" x2="7" y2="10" stroke="#000" stroke-width="1.6"/><rect x="7" y="6" width="6" height="8" fill="none" stroke="#000" stroke-width="1.5"/><line x1="10" y1="10" x2="18" y2="10" stroke="#000" stroke-width="1.6"/></svg>
+      </button>
+      <button class="win-btn tool-btn" data-tool="force" title="Linear Thruster / Force Vector">
+        <svg viewBox="0 0 20 20"><line x1="3" y1="10" x2="16" y2="10" stroke="#CC0000" stroke-width="2.2"/><polygon points="17,10 11,6 11,14" fill="#CC0000"/><circle cx="3" cy="10" r="2" fill="#000"/></svg>
+      </button>
+      <button class="win-btn tool-btn" data-tool="motor" title="Rotational Motor">
+        <svg viewBox="0 0 20 20"><circle cx="10" cy="10" r="6" fill="#E0E0E0" stroke="#000" stroke-width="1.5"/><path d="M10 6 A4 4 0 1 1 6 10" fill="none" stroke="#000080" stroke-width="1.5"/><polygon points="10,4 13,6.5 10,8.5" fill="#000080"/></svg>
+      </button>
+      <button class="win-btn tool-btn" data-tool="slot" title="Horizontal / Vertical Slot Slider Joint">
+        <svg viewBox="0 0 20 20"><line x1="2" y1="10" x2="18" y2="10" stroke="#000" stroke-width="3"/><line x1="3" y1="10" x2="17" y2="10" stroke="#FFF" stroke-width="1"/><rect x="7" y="7" width="6" height="6" fill="#FFCC00" stroke="#000"/></svg>
+      </button>
+    </div>
+
+    <!-- Main Interactive Canvas -->
+    <div id="canvas-wrapper">
+      <canvas id="sim-canvas"></canvas>
+
+      <!-- Floating Properties Dialog -->
+      <div id="props-window" class="floating-win" style="top: 24px; right: 10px; width: 245px;">
+        <div class="floating-header" id="props-header">
+          <span>Properties</span>
+          <button class="win-btn win-close-btn" onclick="app.toggleFloatingWin('props-window', 'chk-win-props', false)">X</button>
+        </div>
+        <div class="floating-body" id="props-body"></div>
+      </div>
+
+      <!-- Floating Measure Graph & Digital Meter Window -->
+      <div id="measure-window" class="floating-win">
+        <div class="floating-header" id="measure-header">
+          <span id="measure-title">Measure - Energy & Kinematics</span>
+          <button class="win-btn win-close-btn" onclick="app.toggleFloatingWin('measure-window', 'chk-win-meas', false)">X</button>
+        </div>
+        <div class="floating-body">
+          <div style="display:flex; justify-content:space-between; gap:4px; margin-bottom:4px;">
+            <select id="measure-mode-select" class="bevel-in" style="flex:1; height:20px;" onchange="app.setMeasureMode(this.value)">
+              <option value="dashboard">All Meters Dashboard (Prob #8)</option>
+              <option value="energy">Energy (K, Ug, Us, Total E, Loss)</option>
+              <option value="position">Position (X, Y, Angle θ)</option>
+              <option value="velocity">Velocity (Vx, Vy, |V|, ω)</option>
+              <option value="acceleration">Acceleration (Ax, Ay, |A|)</option>
+              <option value="momentum">Momentum (Px, Py, Angular L)</option>
+              <option value="forces">Forces (Fnet, Normal N, Friction fk)</option>
+            </select>
+            <button class="win-btn" style="padding:1px 6px;" onclick="app.exportCSV()" title="Export Time-Series CSV">CSV</button>
+          </div>
+          <table class="digital-table" id="measure-table"></table>
+          <canvas id="measure-graph" class="bevel-in" width="290" height="115"></canvas>
+          <div class="legend-row" id="measure-legend"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom Status Bar -->
+  <div id="statusbar">
+    <div class="status-pane" id="st-coords">X: 0.00 m, Y: 0.00 m</div>
+    <div class="status-pane" id="st-zoom">Zoom: 100%</div>
+    <div class="status-pane" id="st-hint" style="flex:1; overflow:hidden; text-overflow:ellipsis;">Tool: Select / Drag / Resize / Rotate</div>
+  </div>
+
+  <!-- Modal Dialog -->
+  <div id="modal-overlay">
+    <div id="modal-box" class="floating-win" style="position:relative;">
+      <div class="floating-header">
+        <span id="modal-title">Dialog</span>
+        <button class="win-btn win-close-btn" onclick="app.closeModal()">X</button>
+      </div>
+      <div class="floating-body" id="modal-body"></div>
+    </div>
+  </div>
+
+<script>
+/**
+ * Interactive Physics - Full Web Edition
+ * Rigid-Body Impulse Solver + SAT + Joints/Pulleys/Ropes/Springs/Motors/Slots + Strip-Chart Graphs
+ */
+class InteractivePhysicsApp {
+  constructor() {
+    this.canvas = document.getElementById('sim-canvas');
+    this.ctx = this.canvas.getContext('2d');
+    this.wrapper = document.getElementById('canvas-wrapper');
+
+    // Camera & Viewport
+    this.ppm = 90; // pixels per meter
+    this.camX = 0;
+    this.camY = 2.0;
+
+    // World Parameters
+    this.gravity = 9.8;
+    this.airDragCoeff = 0.0;
+    this.electrostatics = false;
+    this.showGrid = true;
+    this.snapToGrid = false;
+    this.showRulers = true;
+    this.showAxes = true;
+    this.tracking = true;
+    this.showCOM = true;
+
+    // Vector Overlays
+    this.showVectors = true;
+    this.vecVel = true;
+    this.vecAcc = false;
+    this.vecForce = true;
+    this.vecGrav = false;
+    this.vecNorm = true;
+    this.vecFric = true;
+    this.vecScale = 1.0;
+
+    // Simulation Loop Controls
+    this.running = false;
+    this.time = 0;
+    this.frame = 0;
+    this.baseDt = 1 / 60;
+    this.simSpeed = 1.0;
+    this.subSteps = 12;
+
+    // Entities
+    this.bodies = [];
+    this.springs = []; // 'spring', 'damper', 'rod', 'rope'
+    this.joints = [];  // 'pin', 'pulley', 'motor', 'slot'
+    this.forces = [];  // linear thrusters
+    this.trails = [];
+    this.undoStack = [];
+    this.initialSnapshot = null;
+
+    // Measurement & History
+    this.measureMode = 'dashboard';
+    this.history = []; // time-series data for graph & CSV
+    this.prob8Ref = null; // reference launch point along incline for Problem #8
+
+    // Interaction State
+    this.activeTool = 'select';
+    this.propTab = 'geometry';
+    this.selected = null; // { type: 'body'|'spring'|'joint'|'force', id }
+    this.dragging = null;
+    this.creating = null;
+    this.polyPoints = [];
+    this.pulleyStage = [];
+    this.activePointers = new Map();
+    this.pinchStartDist = null;
+    this.pinchStartPpm = 90;
+
+    this.initUI();
+    this.resizeCanvas();
+    window.addEventListener('resize', () => this.resizeCanvas());
+
+    // Load Problem #8 preset on startup
+    this.loadPreset('prob8_friction');
+  }
+
+  /* ==================== COORDINATE & SNAP HELPERS ==================== */
+  worldToScreen(wx, wy) {
+    return {
+      x: this.canvas.width / 2 + (wx - this.camX) * this.ppm,
+      y: this.canvas.height / 2 - (wy - this.camY) * this.ppm
+    };
+  }
+
+  screenToWorld(sx, sy) {
+    return {
+      x: this.camX + (sx - this.canvas.width / 2) / this.ppm,
+      y: this.camY - (sy - this.canvas.height / 2) / this.ppm
+    };
+  }
+
+  snapVal(v) {
+    return this.snapToGrid ? Math.round(v * 10) / 10 : v;
+  }
+
+  resizeCanvas() {
+    const rect = this.wrapper.getBoundingClientRect();
+    this.canvas.width = Math.max(200, Math.floor(rect.width));
+    this.canvas.height = Math.max(200, Math.floor(rect.height));
+    this.render();
+  }
+
+  /* ==================== UI & MENUS ==================== */
+  initUI() {
+    document.querySelectorAll('.menu-item').forEach(item => {
+      item.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const target = document.getElementById('dropdown-' + item.dataset.menu);
+        const wasOpen = target.style.display === 'block';
+        this.closeAllMenus();
+        if (!wasOpen) {
+          const rect = item.getBoundingClientRect();
+          target.style.left = Math.min(rect.left, window.innerWidth - 220) + 'px';
+          target.style.top = rect.bottom + 'px';
+          target.style.display = 'block';
+          item.classList.add('open');
+        }
+      });
+    });
+
+    document.addEventListener('click', () => this.closeAllMenus());
+
+    const hints = {
+      select: 'Select / Drag / Corner Resize / Top Handle Rotate',
+      pan: 'Pan Workspace (or Two-Finger Drag / Space+Drag)',
+      zoom: 'Click to Zoom In, Hold Alt+Click to Zoom Out',
+      rect: 'Drag to draw Rectangle Body',
+      circle: 'Drag to draw Circle / Disk Body',
+      polygon: 'Click vertices to draw Polygon; Double-Click/Tap to close',
+      anchor: 'Click on any body to Anchor/Pin it to background',
+      pin: 'Click on two overlapping bodies (or one body) to place Pin Hinge',
+      rod: 'Drag between two points/bodies to create Rigid Rod',
+      rope: 'Drag between two points/bodies to create Inextensible Rope',
+      pulley: 'Click Body A, then Pulley Wheel point, then Body B',
+      spring: 'Drag between two points/bodies to attach Helical Spring',
+      damper: 'Drag between two points/bodies to attach Damper',
+      force: 'Drag from a body to attach a Constant/Sinusoidal Force',
+      motor: 'Click on a body or pin joint to attach a Rotational Motor',
+      slot: 'Drag across a body to constrain it along a Linear Slot track'
+    };
+
+    document.querySelectorAll('.tool-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        this.activeTool = btn.dataset.tool;
+        this.polyPoints = [];
+        this.pulleyStage = [];
+        document.getElementById('st-hint').textContent = 'Tool: ' + (hints[this.activeTool] || this.activeTool);
+        this.render();
+      });
+    });
+
+    this.makeDraggable(document.getElementById('props-window'), document.getElementById('props-header'));
+    this.makeDraggable(document.getElementById('measure-window'), document.getElementById('measure-header'));
+
+    // Unified Pointer Events (Mouse + Touch + Pinch-Zoom)
+    const getLocalPos = (e) => {
+      const rect = this.canvas.getBoundingClientRect();
+      return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+    };
+
+    this.canvas.addEventListener('pointerdown', (e) => {
+      this.closeAllMenus();
+      this.canvas.setPointerCapture(e.pointerId);
+      const pos = getLocalPos(e);
+      this.activePointers.set(e.pointerId, pos);
+
+      if (this.activePointers.size === 2) {
+        const pts = Array.from(this.activePointers.values());
+        this.pinchStartDist = Math.hypot(pts[1].x - pts[0].x, pts[1].y - pts[0].y);
+        this.pinchStartPpm = this.ppm;
+        this.dragging = null;
+        this.creating = null;
+        return;
+      }
+
+      this.handlePointerDown(pos.x, pos.y, e);
+    });
+
+    this.canvas.addEventListener('pointermove', (e) => {
+      const pos = getLocalPos(e);
+      if (this.activePointers.has(e.pointerId)) {
+        this.activePointers.set(e.pointerId, pos);
+      }
+
+      if (this.activePointers.size === 2 && this.pinchStartDist) {
+        const pts = Array.from(this.activePointers.values());
+        const dist = Math.hypot(pts[1].x - pts[0].x, pts[1].y - pts[0].y);
+        if (dist > 10) {
+          this.ppm = Math.max(20, Math.min(400, this.pinchStartPpm * (dist / this.pinchStartDist)));
+          document.getElementById('st-zoom').textContent = `Zoom: ${Math.round((this.ppm / 90) * 100)}%`;
+          this.render();
+        }
+        return;
+      }
+
+      this.handlePointerMove(pos.x, pos.y);
+    });
+
+    const endPtr = (e) => {
+      this.activePointers.delete(e.pointerId);
+      if (this.activePointers.size < 2) this.pinchStartDist = null;
+      this.handlePointerUp();
+    };
+
+    this.canvas.addEventListener('pointerup', endPtr);
+    this.canvas.addEventListener('pointercancel', endPtr);
+
+    this.canvas.addEventListener('dblclick', (e) => {
+      if (this.activeTool === 'polygon' && this.polyPoints.length >= 3) {
+        this.finishPolygonCreation();
+      }
+    });
+
+    this.canvas.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      this.zoom(e.deltaY < 0 ? 1.12 : 0.89);
+    }, { passive: false });
+
+    window.addEventListener('keydown', (e) => {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+      if (e.key === 'Delete' || e.key === 'Backspace') this.deleteSelected();
+      if (e.key === ' ') { e.preventDefault(); this.running ? this.stopSim() : this.startSim(); }
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); this.undo(); }
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'd') { e.preventDefault(); this.duplicateSelected(); }
+    });
+  }
+
+  closeAllMenus() {
+    document.querySelectorAll('.dropdown-menu').forEach(m => m.style.display = 'none');
+    document.querySelectorAll('.menu-item').forEach(i => i.classList.remove('open'));
+  }
+
+  makeDraggable(winEl, handleEl) {
+    let sx = 0, sy = 0, ox = 0, oy = 0, active = false;
+    handleEl.addEventListener('pointerdown', (e) => {
+      if (e.target.tagName === 'BUTTON') return;
+      active = true;
+      handleEl.setPointerCapture(e.pointerId);
+      sx = e.clientX; sy = e.clientY;
+      ox = winEl.offsetLeft; oy = winEl.offsetTop;
+    });
+    handleEl.addEventListener('pointermove', (e) => {
+      if (!active) return;
+      const nx = Math.max(0, Math.min(this.wrapper.clientWidth - 60, ox + (e.clientX - sx)));
+      const ny = Math.max(0, Math.min(this.wrapper.clientHeight - 25, oy + (e.clientY - sy)));
+      winEl.style.left = nx + 'px';
+      winEl.style.right = 'auto';
+      winEl.style.top = ny + 'px';
+      winEl.style.bottom = 'auto';
+    });
+    handleEl.addEventListener('pointerup', () => { active = false; });
+  }
+
+  /* ==================== ENTITY FACTORIES & INERTIA ==================== */
+  uid() {
+    return 'id_' + Math.random().toString(36).slice(2, 9);
+  }
+
+  computeInertia(b) {
+    if (b.anchored || b.mass <= 0) return Infinity;
+    if (b.shape === 'circle') {
+      return 0.5 * b.mass * b.radius * b.radius;
+    }
+    if (b.shape === 'polygon' && b.localVerts && b.localVerts.length >= 3) {
+      let num = 0, den = 0;
+      const pts = b.localVerts;
+      for (let i = 0; i < pts.length; i++) {
+        const p1 = pts[i], p2 = pts[(i + 1) % pts.length];
+        const cross = Math.abs(p1.x * p2.y - p2.x * p1.y);
+        num += cross * (p1.x * p1.x + p1.x * p2.x + p2.x * p2.x + p1.y * p1.y + p1.y * p2.y + p2.y * p2.y);
+        den += cross;
+      }
+      return den > 1e-6 ? (b.mass / 6) * (num / den) : (1 / 12) * b.mass * (b.width ** 2 + b.height ** 2);
+    }
+    return (1 / 12) * b.mass * (b.width * b.width + b.height * b.height);
+  }
+
+  createBody(opts) {
+    const b = {
+      id: opts.id || this.uid(),
+      name: opts.name || 'Body',
+      shape: opts.shape || 'rect', // 'rect', 'circle', 'polygon'
+      x: opts.x ?? 0,
+      y: opts.y ?? 1,
+      vx: opts.vx ?? 0,
+      vy: opts.vy ?? 0,
+      ax: 0,
+      ay: 0,
+      angle: opts.angle ?? 0,
+      omega: opts.omega ?? 0,
+      alpha: 0,
+      width: opts.width ?? 0.6,
+      height: opts.height ?? 0.4,
+      radius: opts.radius ?? 0.25,
+      localVerts: opts.localVerts || null,
+      mass: opts.mass ?? 1.0,
+      anchored: opts.anchored ?? false,
+      mu_s: opts.mu_s ?? 0.4,
+      mu_k: opts.mu_k ?? 0.3,
+      restitution: opts.restitution ?? 0.3,
+      charge: opts.charge ?? 0, // microCoulombs
+      color: opts.color || '#A6CAF0',
+      // Force diagnostics
+      netFx: 0, netFy: 0, netTorque: 0,
+      normalFx: 0, normalFy: 0,
+      fricFx: 0, fricFy: 0,
+      thermalLoss: 0
+    };
+    b.inertia = this.computeInertia(b);
+    this.bodies.push(b);
+    return b;
+  }
+
+  createSpring(opts) {
+    const sp = {
+      id: opts.id || this.uid(),
+      name: opts.name || 'Spring',
+      type: opts.type || 'spring', // 'spring', 'damper', 'rod', 'rope'
+      bodyA: opts.bodyA || null,
+      localA: opts.localA || { x: 0, y: 0 },
+      bodyB: opts.bodyB || null,
+      localB: opts.localB || { x: 0, y: 0 },
+      k: opts.k ?? 120,
+      c: opts.c ?? (opts.type === 'damper' ? 18 : 0.2),
+      restLength: opts.restLength ?? 1.0,
+      currentForce: 0
+    };
+    this.springs.push(sp);
+    return sp;
+  }
+
+  createJoint(opts) {
+    const j = {
+      id: opts.id || this.uid(),
+      name: opts.name || 'Joint',
+      type: opts.type || 'pin', // 'pin', 'pulley', 'motor', 'slot'
+      bodyA: opts.bodyA || null,
+      localA: opts.localA || { x: 0, y: 0 },
+      bodyB: opts.bodyB || null,
+      localB: opts.localB || { x: 0, y: 0 },
+      pulleyAnchor: opts.pulleyAnchor || { x: 0, y: 3 },
+      totalLength: opts.totalLength ?? 3.0,
+      motorSpeed: opts.motorSpeed ?? 3.0, // rad/s
+      motorTorque: opts.motorTorque ?? 15.0, // N*m
+      slotAngle: opts.slotAngle ?? 0, // radians
+      slotOrigin: opts.slotOrigin || { x: 0, y: 1 },
+      currentForce: 0
+    };
+    this.joints.push(j);
+    return j;
+  }
+
+  createForce(opts) {
+    const f = {
+      id: opts.id || this.uid(),
+      name: opts.name || 'Force',
+      bodyId: opts.bodyId,
+      localPos: opts.localPos || { x: 0, y: 0 },
+      magnitude: opts.magnitude ?? 10,
+      angleDeg: opts.angleDeg ?? 0,
+      sinFreq: opts.sinFreq ?? 0 // 0 = constant, >0 = sinusoidal Hz
+    };
+    this.forces.push(f);
+    return f;
+  }
+
+  /* ==================== GEOMETRY TRANSFORMS ==================== */
+  localToWorld(body, lx, ly) {
+    if (!body) return { x: lx, y: ly };
+    const c = Math.cos(body.angle), s = Math.sin(body.angle);
+    return {
+      x: body.x + lx * c - ly * s,
+      y: body.y + lx * s + ly * c
+    };
+  }
+
+  worldToLocal(body, wx, wy) {
+    if (!body) return { x: wx, y: wy };
+    const dx = wx - body.x, dy = wy - body.y;
+    const c = Math.cos(-body.angle), s = Math.sin(-body.angle);
+    return {
+      x: dx * c - dy * s,
+      y: dx * s + dy * c
+    };
+  }
+
+  getBodyVertices(body) {
+    if (body.shape === 'circle') return [];
+    if (body.shape === 'polygon' && body.localVerts) {
+      return body.localVerts.map(v => this.localToWorld(body, v.x, v.y));
+    }
+    const hw = body.width / 2, hh = body.height / 2;
+    return [
+      { x: -hw, y: -hh },
+      { x: hw, y: -hh },
+      { x: hw, y: hh },
+      { x: -hw, y: hh }
+    ].map(p => this.localToWorld(body, p.x, p.y));
+  }
+
+  /* ==================== HIT TESTING & HANDLES ==================== */
+  hitTestHandle(wx, wy) {
+    if (!this.selected || this.selected.type !== 'body' || this.running) return null;
+    const b = this.bodies.find(x => x.id === this.selected.id);
+    if (!b) return null;
+
+    const tol = 14 / this.ppm;
+    if (b.shape === 'circle') {
+      const rotPt = this.localToWorld(b, b.radius + 0.28, 0);
+      if (Math.hypot(wx - rotPt.x, wy - rotPt.y) <= tol) return { kind: 'rotate', body: b };
+      const radPt = this.localToWorld(b, 0, b.radius);
+      if (Math.hypot(wx - radPt.x, wy - radPt.y) <= tol) return { kind: 'resizeCircle', body: b };
+      return null;
+    }
+
+    const hw = b.width / 2, hh = b.height / 2;
+    const rotPt = this.localToWorld(b, 0, hh + 0.28);
+    if (Math.hypot(wx - rotPt.x, wy - rotPt.y) <= tol) return { kind: 'rotate', body: b };
+
+    const corners = [
+      { name: 'br', lx: hw, ly: -hh },
+      { name: 'tr', lx: hw, ly: hh },
+      { name: 'tl', lx: -hw, ly: hh },
+      { name: 'bl', lx: -hw, ly: -hh }
+    ];
+    for (const c of corners) {
+      const wp = this.localToWorld(b, c.lx, c.ly);
+      if (Math.hypot(wx - wp.x, wy - wp.y) <= tol) return { kind: 'resizeBox', corner: c.name, body: b };
+    }
+    return null;
+  }
+
+  hitTestBody(wx, wy) {
+    for (let i = this.bodies.length - 1; i >= 0; i--) {
+      const b = this.bodies[i];
+      if (b.shape === 'circle') {
+        if (Math.hypot(wx - b.x, wy - b.y) <= b.radius + 0.04) return b;
+      } else {
+        const verts = this.getBodyVertices(b);
+        if (this.pointInPolygon(wx, wy, verts)) return b;
+      }
+    }
+    return null;
+  }
+
+  pointInPolygon(px, py, verts) {
+    let inside = false;
+    for (let i = 0, j = verts.length - 1; i < verts.length; j = i++) {
+      const xi = verts[i].x, yi = verts[i].y;
+      const xj = verts[j].x, yj = verts[j].y;
+      const intersect = ((yi > py) !== (yj > py)) && (px < (xj - xi) * (py - yi) / (yj - yi + 1e-12) + xi);
+      if (intersect) inside = !inside;
+    }
+    return inside;
+  }
+
+  hitTestSpring(wx, wy) {
+    for (let i = this.springs.length - 1; i >= 0; i--) {
+      const sp = this.springs[i];
+      const bA = this.bodies.find(b => b.id === sp.bodyA);
+      const bB = this.bodies.find(b => b.id === sp.bodyB);
+      const pA = this.localToWorld(bA, sp.localA.x, sp.localA.y);
+      const pB = this.localToWorld(bB, sp.localB.x, sp.localB.y);
+      if (this.pointToSegmentDist(wx, wy, pA.x, pA.y, pB.x, pB.y) < 0.14) return sp;
+    }
+    return null;
+  }
+
+  hitTestJoint(wx, wy) {
+    for (let i = this.joints.length - 1; i >= 0; i--) {
+      const j = this.joints[i];
+      const bA = this.bodies.find(b => b.id === j.bodyA);
+      const pA = j.type === 'pulley' ? j.pulleyAnchor : this.localToWorld(bA, j.localA.x, j.localA.y);
+      if (Math.hypot(wx - pA.x, wy - pA.y) < 0.16) return j;
+    }
+    return null;
+  }
+
+  hitTestForce(wx, wy) {
+    for (let i = this.forces.length - 1; i >= 0; i--) {
+      const f = this.forces[i];
+      const b = this.bodies.find(body => body.id === f.bodyId);
+      if (!b) continue;
+      const pA = this.localToWorld(b, f.localPos.x, f.localPos.y);
+      const rad = f.angleDeg * Math.PI / 180;
+      const len = Math.min(1.5, Math.max(0.4, f.magnitude * 0.03));
+      const pB = { x: pA.x + Math.cos(rad) * len, y: pA.y + Math.sin(rad) * len };
+      if (this.pointToSegmentDist(wx, wy, pA.x, pA.y, pB.x, pB.y) < 0.15) return f;
+    }
+    return null;
+  }
+
+  pointToSegmentDist(px, py, x1, y1, x2, y2) {
+    const l2 = (x2 - x1) ** 2 + (y2 - y1) ** 2;
+    if (l2 === 0) return Math.hypot(px - x1, py - y1);
+    let t = ((px - x1) * (x2 - x1) + (py - y1) * (y2 - y1)) / l2;
+    t = Math.max(0, Math.min(1, t));
+    return Math.hypot(px - (x1 + t * (x2 - x1)), py - (y1 + t * (y2 - y1)));
+  }
+
+  /* ==================== POINTER HANDLERS ==================== */
+  handlePointerDown(sx, sy, e) {
+    const wRaw = this.screenToWorld(sx, sy);
+    const w = { x: this.snapVal(wRaw.x), y: this.snapVal(wRaw.y) };
+
+    if (this.activeTool === 'pan') {
+      this.dragging = { mode: 'pan', startSx: sx, startSy: sy, origCamX: this.camX, origCamY: this.camY };
+      return;
+    }
+
+    if (this.activeTool === 'zoom') {
+      this.camX = wRaw.x;
+      this.camY = wRaw.y;
+      this.zoom(e && e.altKey ? 0.8 : 1.25);
+      return;
+    }
+
+    if (this.activeTool === 'select') {
+      const handle = this.hitTestHandle(wRaw.x, wRaw.y);
+      if (handle) {
+        this.saveUndo();
+        this.dragging = {
+          mode: handle.kind,
+          body: handle.body,
+          startAng: Math.atan2(wRaw.y - handle.body.y, wRaw.x - handle.body.x),
+          origAngle: handle.body.angle,
+          origW: handle.body.width,
+          origH: handle.body.height,
+          origR: handle.body.radius
+        };
+        return;
+      }
+
+      const hitF = this.hitTestForce(wRaw.x, wRaw.y);
+      if (hitF) { this.selectEntity('force', hitF.id); return; }
+
+      const hitJ = this.hitTestJoint(wRaw.x, wRaw.y);
+      if (hitJ) { this.selectEntity('joint', hitJ.id); return; }
+
+      const hitS = this.hitTestSpring(wRaw.x, wRaw.y);
+      if (hitS) { this.selectEntity('spring', hitS.id); return; }
+
+      const hitB = this.hitTestBody(wRaw.x, wRaw.y);
+      if (hitB) {
+        this.selectEntity('body', hitB.id);
+        this.saveUndo();
+        this.dragging = { mode: 'moveBody', body: hitB, offsetX: wRaw.x - hitB.x, offsetY: wRaw.y - hitB.y };
+        return;
+      }
+      this.selectEntity(null, null);
+      return;
+    }
+
+    if (this.activeTool === 'anchor') {
+      const hitB = this.hitTestBody(wRaw.x, wRaw.y);
+      if (hitB) {
+        this.saveUndo();
+        hitB.anchored = !hitB.anchored;
+        hitB.vx = 0; hitB.vy = 0; hitB.omega = 0;
+        hitB.inertia = this.computeInertia(hitB);
+        this.selectEntity('body', hitB.id);
+        this.render();
+      }
+      return;
+    }
+
+    if (this.activeTool === 'polygon') {
+      if (this.polyPoints.length >= 3 && Math.hypot(w.x - this.polyPoints[0].x, w.y - this.polyPoints[0].y) < 0.18) {
+        this.finishPolygonCreation();
+        return;
+      }
+      this.polyPoints.push({ x: w.x, y: w.y });
+      this.render();
+      return;
+    }
+
+    if (this.activeTool === 'pulley') {
+      const hitB = this.hitTestBody(wRaw.x, wRaw.y);
+      this.pulleyStage.push({ x: w.x, y: w.y, body: hitB });
+      if (this.pulleyStage.length === 3) {
+        this.saveUndo();
+        const [p1, pWheel, p2] = this.pulleyStage;
+        const bA = p1.body;
+        const bB = p2.body;
+        const localA = bA ? this.worldToLocal(bA, p1.x, p1.y) : { x: p1.x, y: p1.y };
+        const localB = bB ? this.worldToLocal(bB, p2.x, p2.y) : { x: p2.x, y: p2.y };
+        const L = Math.hypot(p1.x - pWheel.x, p1.y - pWheel.y) + Math.hypot(p2.x - pWheel.x, p2.y - pWheel.y);
+        const j = this.createJoint({
+          name: 'Pulley ' + (this.joints.length + 1),
+          type: 'pulley',
+          bodyA: bA ? bA.id : null,
+          localA,
+          bodyB: bB ? bB.id : null,
+          localB,
+          pulleyAnchor: { x: pWheel.x, y: pWheel.y },
+          totalLength: L
+        });
+        this.pulleyStage = [];
+        this.selectEntity('joint', j.id);
+        if (!this.running) this.captureInitialSnapshot();
+      }
+      this.render();
+      return;
+    }
+
+    if (this.activeTool === 'pin' || this.activeTool === 'motor') {
+      const overlapping = this.bodies.filter(b => {
+        if (b.shape === 'circle') return Math.hypot(wRaw.x - b.x, wRaw.y - b.y) <= b.radius;
+        return this.pointInPolygon(wRaw.x, wRaw.y, this.getBodyVertices(b));
+      });
+      if (overlapping.length >= 1) {
+        this.saveUndo();
+        const bA = overlapping[overlapping.length - 1];
+        const bB = overlapping.length >= 2 ? overlapping[overlapping.length - 2] : null;
+        const j = this.createJoint({
+          name: (this.activeTool === 'motor' ? 'Motor ' : 'Pin Joint ') + (this.joints.length + 1),
+          type: this.activeTool,
+          bodyA: bA.id,
+          localA: this.worldToLocal(bA, w.x, w.y),
+          bodyB: bB ? bB.id : null,
+          localB: bB ? this.worldToLocal(bB, w.x, w.y) : { x: w.x, y: w.y }
+        });
+        this.selectEntity('joint', j.id);
+        if (!this.running) this.captureInitialSnapshot();
+        this.render();
+      }
+      return;
+    }
+
+    if (['rect', 'circle'].includes(this.activeTool)) {
+      this.saveUndo();
+      this.creating = { tool: this.activeTool, x1: w.x, y1: w.y, x2: w.x, y2: w.y };
+      return;
+    }
+
+    if (['spring', 'damper', 'rod', 'rope', 'slot'].includes(this.activeTool)) {
+      this.saveUndo();
+      const bA = this.hitTestBody(wRaw.x, wRaw.y);
+      const localA = bA ? this.worldToLocal(bA, w.x, w.y) : { x: w.x, y: w.y };
+      this.creating = { tool: this.activeTool, bodyA: bA ? bA.id : null, localA, wx1: w.x, wy1: w.y, wx2: w.x, wy2: w.y };
+      return;
+    }
+
+    if (this.activeTool === 'force') {
+      const b = this.hitTestBody(wRaw.x, wRaw.y);
+      if (b) {
+        this.saveUndo();
+        this.creating = { tool: 'force', body: b, localPos: this.worldToLocal(b, w.x, w.y), wx1: w.x, wy1: w.y, wx2: w.x, wy2: w.y };
+      }
+    }
+  }
+
+  handlePointerMove(sx, sy) {
+    const wRaw = this.screenToWorld(sx, sy);
+    const w = { x: this.snapVal(wRaw.x), y: this.snapVal(wRaw.y) };
+    document.getElementById('st-coords').textContent = `X: ${w.x.toFixed(2)} m, Y: ${w.y.toFixed(2)} m`;
+
+    if (this.dragging) {
+      const d = this.dragging;
+      if (d.mode === 'pan') {
+        this.camX = d.origCamX - (sx - d.startSx) / this.ppm;
+        this.camY = d.origCamY + (sy - d.startSy) / this.ppm;
+      } else if (d.mode === 'moveBody') {
+        d.body.x = this.snapVal(wRaw.x - d.offsetX);
+        d.body.y = this.snapVal(wRaw.y - d.offsetY);
+        d.body.vx = 0; d.body.vy = 0; d.body.omega = 0;
+        this.updatePropertiesWindow();
+      } else if (d.mode === 'rotate') {
+        const ang = Math.atan2(wRaw.y - d.body.y, wRaw.x - d.body.x);
+        d.body.angle = d.origAngle + (ang - d.startAng);
+        this.updatePropertiesWindow();
+      } else if (d.mode === 'resizeCircle') {
+        d.body.radius = Math.max(0.1, Math.hypot(wRaw.x - d.body.x, wRaw.y - d.body.y));
+        d.body.inertia = this.computeInertia(d.body);
+        this.updatePropertiesWindow();
+      } else if (d.mode === 'resizeBox') {
+        const loc = this.worldToLocal(d.body, wRaw.x, wRaw.y);
+        const newW = Math.max(0.15, Math.abs(loc.x) * 2);
+        const newH = Math.max(0.15, Math.abs(loc.y) * 2);
+        if (d.body.shape === 'polygon' && d.body.localVerts) {
+          const sxFactor = newW / d.body.width;
+          const syFactor = newH / d.body.height;
+          d.body.localVerts = d.body.localVerts.map(v => ({ x: v.x * sxFactor, y: v.y * syFactor }));
+        }
+        d.body.width = newW;
+        d.body.height = newH;
+        d.body.inertia = this.computeInertia(d.body);
+        this.updatePropertiesWindow();
+      }
+      this.render();
+      return;
+    }
+
+    if (this.creating) {
+      this.creating.x2 = w.x;
+      this.creating.y2 = w.y;
+      this.creating.wx2 = w.x;
+      this.creating.wy2 = w.y;
+      this.render();
+    }
+  }
+
+  handlePointerUp() {
+    if (this.dragging) {
+      if (!this.running) this.captureInitialSnapshot();
+      this.dragging = null;
+      this.render();
+      return;
+    }
+
+    if (this.creating) {
+      const c = this.creating;
+      this.creating = null;
+
+      if (c.tool === 'rect') {
+        const w = Math.max(0.2, Math.abs(c.x2 - c.x1));
+        const h = Math.max(0.2, Math.abs(c.y2 - c.y1));
+        const b = this.createBody({
+          name: 'Block ' + (this.bodies.length + 1),
+          shape: 'rect',
+          x: (c.x1 + c.x2) / 2,
+          y: (c.y1 + c.y2) / 2,
+          width: w, height: h,
+          color: '#A6CAF0'
+        });
+        this.selectEntity('body', b.id);
+      } else if (c.tool === 'circle') {
+        const r = Math.max(0.15, Math.hypot(c.x2 - c.x1, c.y2 - c.y1) / 2);
+        const b = this.createBody({
+          name: 'Disk ' + (this.bodies.length + 1),
+          shape: 'circle',
+          x: (c.x1 + c.x2) / 2,
+          y: (c.y1 + c.y2) / 2,
+          radius: r,
+          color: '#FFCC66'
+        });
+        this.selectEntity('body', b.id);
+      } else if (['spring', 'damper', 'rod', 'rope'].includes(c.tool)) {
+        const bB = this.hitTestBody(c.wx2, c.wy2);
+        const localB = bB ? this.worldToLocal(bB, c.wx2, c.wy2) : { x: c.wx2, y: c.wy2 };
+        const dist = Math.max(0.1, Math.hypot(c.wx2 - c.wx1, c.wy2 - c.wy1));
+        const sp = this.createSpring({
+          name: c.tool.toUpperCase() + ' ' + (this.springs.length + 1),
+          type: c.tool,
+          bodyA: c.bodyA,
+          localA: c.localA,
+          bodyB: bB ? bB.id : null,
+          localB,
+          k: c.tool === 'rod' ? 18000 : (c.tool === 'rope' ? 12000 : 140),
+          restLength: dist
+        });
+        this.selectEntity('spring', sp.id);
+      } else if (c.tool === 'slot') {
+        if (c.bodyA) {
+          const ang = Math.atan2(c.wy2 - c.wy1, c.wx2 - c.wx1);
+          const j = this.createJoint({
+            name: 'Slot Track ' + (this.joints.length + 1),
+            type: 'slot',
+            bodyA: c.bodyA,
+            slotOrigin: { x: c.wx1, y: c.wy1 },
+            slotAngle: ang
+          });
+          this.selectEntity('joint', j.id);
+        }
+      } else if (c.tool === 'force') {
+        const dx = c.wx2 - c.wx1, dy = c.wy2 - c.wy1;
+        const f = this.createForce({
+          name: 'Force ' + (this.forces.length + 1),
+          bodyId: c.body.id,
+          localPos: c.localPos,
+          magnitude: Math.max(5, Math.round(Math.hypot(dx, dy) * 25)),
+          angleDeg: Math.round(Math.atan2(dy, dx) * 180 / Math.PI)
+        });
+        this.selectEntity('force', f.id);
+      }
+
+      if (!this.running) this.captureInitialSnapshot();
+      this.render();
+    }
+  }
+
+  finishPolygonCreation() {
+    if (this.polyPoints.length < 3) return;
+    this.saveUndo();
+    let cx = 0, cy = 0;
+    for (const p of this.polyPoints) { cx += p.x; cy += p.y; }
+    cx /= this.polyPoints.length;
+    cy /= this.polyPoints.length;
+
+    const localVerts = this.polyPoints.map(p => ({ x: p.x - cx, y: p.y - cy }));
+    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+    for (const v of localVerts) {
+      minX = Math.min(minX, v.x); maxX = Math.max(maxX, v.x);
+      minY = Math.min(minY, v.y); maxY = Math.max(maxY, v.y);
+    }
+
+    const b = this.createBody({
+      name: 'Polygon ' + (this.bodies.length + 1),
+      shape: 'polygon',
+      x: cx, y: cy,
+      width: Math.max(0.2, maxX - minX),
+      height: Math.max(0.2, maxY - minY),
+      localVerts,
+      color: '#99EE99'
+    });
+    this.polyPoints = [];
+    this.selectEntity('body', b.id);
+    if (!this.running) this.captureInitialSnapshot();
+    this.render();
+  }
+
+  /* ==================== PROPERTIES DIALOG (TABBED) ==================== */
+  selectEntity(type, id) {
+    this.selected = type ? { type, id } : null;
+    this.updatePropertiesWindow();
+    this.render();
+  }
+
+  setPropTab(tab) {
+    this.propTab = tab;
+    this.updatePropertiesWindow();
+  }
+
+  updatePropertiesWindow() {
+    const bodyEl = document.getElementById('props-body');
+    if (!this.selected) {
+      bodyEl.innerHTML = `<div style="color:#333; padding:4px 0;">Select any body, spring, joint, or force to inspect and edit its exact properties.<br><br><b>Tip:</b> Drag corner squares to resize or the top handle to rotate.</div>`;
+      return;
+    }
+
+    if (this.selected.type === 'body') {
+      const b = this.bodies.find(x => x.id === this.selected.id);
+      if (!b) return;
+      const deg = (b.angle * 180 / Math.PI).toFixed(1);
+
+      let html = `
+        <div class="win-tabs">
+          <div class="win-tab ${this.propTab==='geometry'?'active':''}" onclick="app.setPropTab('geometry')">Geom</div>
+          <div class="win-tab ${this.propTab==='material'?'active':''}" onclick="app.setPropTab('material')">Material</div>
+          <div class="win-tab ${this.propTab==='velocity'?'active':''}" onclick="app.setPropTab('velocity')">Motion</div>
+          <div class="win-tab ${this.propTab==='appearance'?'active':''}" onclick="app.setPropTab('appearance')">Style</div>
+        </div>
+        <div class="prop-grid">
+      `;
+
+      if (this.propTab === 'geometry') {
+        html += `
+          <label>Name:</label><input class="bevel-in prop-input" type="text" value="${b.name}" onchange="app.editBody('${b.id}','name',this.value)">
+          <label>X (m):</label><input class="bevel-in prop-input" type="number" step="0.05" value="${b.x.toFixed(3)}" onchange="app.editBody('${b.id}','x',this.value)">
+          <label>Y (m):</label><input class="bevel-in prop-input" type="number" step="0.05" value="${b.y.toFixed(3)}" onchange="app.editBody('${b.id}','y',this.value)">
+          <label>Angle (°):</label><input class="bevel-in prop-input" type="number" step="1" value="${deg}" onchange="app.editBody('${b.id}','angleDeg',this.value)">
+          ${b.shape === 'circle'
+            ? `<label>Radius (m):</label><input class="bevel-in prop-input" type="number" step="0.02" min="0.05" value="${b.radius.toFixed(3)}" onchange="app.editBody('${b.id}','radius',this.value)">`
+            : `<label>Width (m):</label><input class="bevel-in prop-input" type="number" step="0.05" min="0.05" value="${b.width.toFixed(3)}" onchange="app.editBody('${b.id}','width',this.value)">
+               <label>Height (m):</label><input class="bevel-in prop-input" type="number" step="0.05" min="0.05" value="${b.height.toFixed(3)}" onchange="app.editBody('${b.id}','height',this.value)">`
+          }
+          <label>Anchored:</label><input type="checkbox" ${b.anchored ? 'checked' : ''} onchange="app.editBody('${b.id}','anchored',this.checked)">
+        `;
+      } else if (this.propTab === 'material') {
+        html += `
+          <label>Mass (kg):</label><input class="bevel-in prop-input" type="number" step="0.05" min="0.01" value="${b.mass}" onchange="app.editBody('${b.id}','mass',this.value)">
+          <label>Inertia I:</label><div style="font-family:monospace;">${isFinite(b.inertia) ? b.inertia.toFixed(4) : '∞'} kg·m²</div>
+          <label>Static μs:</label><input class="bevel-in prop-input" type="number" step="0.05" min="0" value="${b.mu_s}" onchange="app.editBody('${b.id}','mu_s',this.value)">
+          <label>Kinetic μk:</label><input class="bevel-in prop-input" type="number" step="0.05" min="0" value="${b.mu_k}" onchange="app.editBody('${b.id}','mu_k',this.value)">
+          <label>Elasticity e:</label><input class="bevel-in prop-input" type="number" step="0.05" min="0" max="1" value="${b.restitution}" onchange="app.editBody('${b.id}','restitution',this.value)">
+          <label>Charge q (μC):</label><input class="bevel-in prop-input" type="number" step="1" value="${b.charge}" onchange="app.editBody('${b.id}','charge',this.value)">
+        `;
+      } else if (this.propTab === 'velocity') {
+        html += `
+          <label>Vx (m/s):</label><input class="bevel-in prop-input" type="number" step="0.1" value="${b.vx.toFixed(3)}" onchange="app.editBody('${b.id}','vx',this.value)">
+          <label>Vy (m/s):</label><input class="bevel-in prop-input" type="number" step="0.1" value="${b.vy.toFixed(3)}" onchange="app.editBody('${b.id}','vy',this.value)">
+          <label>ω (rad/s):</label><input class="bevel-in prop-input" type="number" step="0.2" value="${b.omega.toFixed(3)}" onchange="app.editBody('${b.id}','omega',this.value)">
+          <label>Speed |V|:</label><div style="font-family:monospace;">${Math.hypot(b.vx, b.vy).toFixed(3)} m/s</div>
+          <label>Net Force:</label><div style="font-family:monospace;">${Math.hypot(b.netFx, b.netFy).toFixed(2)} N</div>
+        `;
+      } else {
+        html += `
+          <label>Fill Color:</label><input type="color" value="${b.color}" onchange="app.editBody('${b.id}','color',this.value)">
+          <label>Shape Type:</label><div>${b.shape}</div>
+        `;
+      }
+      html += `</div>`;
+      bodyEl.innerHTML = html;
+    } else if (this.selected.type === 'spring') {
+      const sp = this.springs.find(x => x.id === this.selected.id);
+      if (!sp) return;
+      bodyEl.innerHTML = `
+        <div class="prop-grid">
+          <div class="prop-section">${sp.name} (${sp.type})</div>
+          <label>Stiffness k (N/m):</label><input class="bevel-in prop-input" type="number" step="10" value="${sp.k}" onchange="app.editSpring('${sp.id}','k',this.value)">
+          <label>Damping c:</label><input class="bevel-in prop-input" type="number" step="0.5" value="${sp.c}" onchange="app.editSpring('${sp.id}','c',this.value)">
+          <label>Natural L0 (m):</label><input class="bevel-in prop-input" type="number" step="0.01" value="${sp.restLength.toFixed(3)}" onchange="app.editSpring('${sp.id}','restLength',this.value)">
+          <label>Tension/Force:</label><div style="font-family:monospace; font-weight:bold;">${sp.currentForce.toFixed(2)} N</div>
+        </div>
+      `;
+    } else if (this.selected.type === 'joint') {
+      const j = this.joints.find(x => x.id === this.selected.id);
+      if (!j) return;
+      bodyEl.innerHTML = `
+        <div class="prop-grid">
+          <div class="prop-section">${j.name} (${j.type})</div>
+          ${j.type === 'motor' ? `
+            <label>Target ω (rad/s):</label><input class="bevel-in prop-input" type="number" step="0.5" value="${j.motorSpeed}" onchange="app.editJoint('${j.id}','motorSpeed',this.value)">
+            <label>Max Torque:</label><input class="bevel-in prop-input" type="number" step="5" value="${j.motorTorque}" onchange="app.editJoint('${j.id}','motorTorque',this.value)">
+          ` : ''}
+          ${j.type === 'pulley' ? `
+            <label>Rope Length (m):</label><input class="bevel-in prop-input" type="number" step="0.1" value="${j.totalLength.toFixed(3)}" onchange="app.editJoint('${j.id}','totalLength',this.value)">
+          ` : ''}
+          ${j.type === 'slot' ? `
+            <label>Slot Angle (°):</label><input class="bevel-in prop-input" type="number" step="1" value="${(j.slotAngle * 180 / Math.PI).toFixed(1)}" onchange="app.editJoint('${j.id}','slotAngleDeg',this.value)">
+          ` : ''}
+          <label>Constraint Force:</label><div style="font-family:monospace;">${j.currentForce.toFixed(2)} N</div>
+        </div>
+      `;
+    } else if (this.selected.type === 'force') {
+      const f = this.forces.find(x => x.id === this.selected.id);
+      if (!f) return;
+      bodyEl.innerHTML = `
+        <div class="prop-grid">
+          <div class="prop-section">${f.name}</div>
+          <label>Magnitude (N):</label><input class="bevel-in prop-input" type="number" step="1" value="${f.magnitude}" onchange="app.editForce('${f.id}','magnitude',this.value)">
+          <label>Angle (°):</label><input class="bevel-in prop-input" type="number" step="1" value="${f.angleDeg}" onchange="app.editForce('${f.id}','angleDeg',this.value)">
+          <label>Sin Freq (Hz):</label><input class="bevel-in prop-input" type="number" step="0.2" min="0" value="${f.sinFreq}" onchange="app.editForce('${f.id}','sinFreq',this.value)">
+        </div>
+      `;
+    }
+  }
+
+  editBody(id, prop, val) {
+    const b = this.bodies.find(x => x.id === id);
+    if (!b) return;
+    if (prop === 'name' || prop === 'color') b[prop] = val;
+    else if (prop === 'anchored') {
+      b.anchored = Boolean(val);
+      if (b.anchored) { b.vx = 0; b.vy = 0; b.omega = 0; }
+    } else if (prop === 'angleDeg') {
+      b.angle = parseFloat(val) * Math.PI / 180;
+    } else {
+      const num = parseFloat(val) || 0;
+      if ((prop === 'width' || prop === 'height') && b.shape === 'polygon' && b.localVerts) {
+        const scale = num / Math.max(0.05, b[prop]);
+        b.localVerts = b.localVerts.map(v => ({
+          x: prop === 'width' ? v.x * scale : v.x,
+          y: prop === 'height' ? v.y * scale : v.y
+        }));
+      }
+      b[prop] = num;
+    }
+    b.inertia = this.computeInertia(b);
+    if (!this.running) this.captureInitialSnapshot();
+    this.updatePropertiesWindow();
+    this.render();
+  }
+
+  editSpring(id, prop, val) {
+    const sp = this.springs.find(x => x.id === id);
+    if (!sp) return;
+    sp[prop] = parseFloat(val) || 0;
+    if (!this.running) this.captureInitialSnapshot();
+    this.updatePropertiesWindow();
+    this.render();
+  }
+
+  editJoint(id, prop, val) {
+    const j = this.joints.find(x => x.id === id);
+    if (!j) return;
+    if (prop === 'slotAngleDeg') j.slotAngle = (parseFloat(val) || 0) * Math.PI / 180;
+    else j[prop] = parseFloat(val) || 0;
+    if (!this.running) this.captureInitialSnapshot();
+    this.updatePropertiesWindow();
+    this.render();
+  }
+
+  editForce(id, prop, val) {
+    const f = this.forces.find(x => x.id === id);
+    if (!f) return;
+    f[prop] = parseFloat(val) || 0;
+    if (!this.running) this.captureInitialSnapshot();
+    this.updatePropertiesWindow();
+    this.render();
+  }
+
+  /* ==================== FULL 2D RIGID-BODY PHYSICS ENGINE ==================== */
+  applyForceAtPoint(b, fx, fy, wx, wy) {
+    if (!b || b.anchored) return;
+    b.netFx += fx;
+    b.netFy += fy;
+    const rx = wx - b.x;
+    const ry = wy - b.y;
+    b.netTorque += rx * fy - ry * fx;
+  }
+
+  stepPhysics(dt) {
+    // 1. Gravity & Air Drag
+    for (const b of this.bodies) {
+      b.netFx = 0;
+      b.netFy = b.anchored ? 0 : -b.mass * this.gravity;
+      b.netTorque = 0;
+      b.normalFx = 0; b.normalFy = 0;
+      b.fricFx = 0; b.fricFy = 0;
+
+      if (!b.anchored && this.airDragCoeff > 0) {
+        const speed = Math.hypot(b.vx, b.vy);
+        if (speed > 1e-5) {
+          const fd = 0.5 * this.airDragCoeff * speed;
+          b.netFx -= fd * b.vx;
+          b.netFy -= fd * b.vy;
+          b.thermalLoss += fd * speed * speed * dt;
+        }
+      }
+    }
+
+    // 2. Electrostatics (Coulomb Law)
+    if (this.electrostatics) {
+      const ke = 8.99e-3; // scaled for microCoulombs (1e-12 * 8.99e9)
+      for (let i = 0; i < this.bodies.length; i++) {
+        for (let j = i + 1; j < this.bodies.length; j++) {
+          const A = this.bodies[i], B = this.bodies[j];
+          if (!A.charge || !B.charge) continue;
+          const dx = B.x - A.x, dy = B.y - A.y;
+          const r2 = Math.max(0.04, dx * dx + dy * dy);
+          const r = Math.sqrt(r2);
+          const fMag = (ke * A.charge * B.charge) / r2;
+          const fx = fMag * (dx / r), fy = fMag * (dy / r);
+          if (!A.anchored) { A.netFx -= fx; A.netFy -= fy; }
+          if (!B.anchored) { B.netFx += fx; B.netFy += fy; }
+        }
+      }
+    }
+
+    // 3. Applied Linear Thruster Forces
+    for (const f of this.forces) {
+      const b = this.bodies.find(x => x.id === f.bodyId);
+      if (!b || b.anchored) continue;
+      const wp = this.localToWorld(b, f.localPos.x, f.localPos.y);
+      const rad = f.angleDeg * Math.PI / 180;
+      const scale = f.sinFreq > 0 ? Math.sin(2 * Math.PI * f.sinFreq * this.time) : 1;
+      const mag = f.magnitude * scale;
+      this.applyForceAtPoint(b, mag * Math.cos(rad), mag * Math.sin(rad), wp.x, wp.y);
+    }
+
+    // 4. Springs, Dampers, Rods & Ropes
+    for (const sp of this.springs) {
+      const bA = this.bodies.find(b => b.id === sp.bodyA);
+      const bB = this.bodies.find(b => b.id === sp.bodyB);
+      const pA = this.localToWorld(bA, sp.localA.x, sp.localA.y);
+      const pB = this.localToWorld(bB, sp.localB.x, sp.localB.y);
+
+      const dx = pB.x - pA.x, dy = pB.y - pA.y;
+      const dist = Math.hypot(dx, dy);
+      if (dist < 1e-6) continue;
+
+      const nx = dx / dist, ny = dy / dist;
+      const stretch = dist - sp.restLength;
+
+      if (sp.type === 'rope' && stretch <= 0) {
+        sp.currentForce = 0;
+        continue;
+      }
+
+      // Point velocities including angular contribution v + omega x r
+      const vAx = bA ? bA.vx - bA.omega * (pA.y - bA.y) : 0;
+      const vAy = bA ? bA.vy + bA.omega * (pA.x - bA.x) : 0;
+      const vBx = bB ? bB.vx - bB.omega * (pB.y - bB.y) : 0;
+      const vBy = bB ? bB.vy + bB.omega * (pB.x - bB.x) : 0;
+      const relVel = (vBx - vAx) * nx + (vBy - vAy) * ny;
+
+      const forceMag = sp.type === 'damper' ? (-sp.c * relVel) : (-sp.k * stretch - sp.c * relVel);
+      sp.currentForce = Math.abs(forceMag);
+
+      if (sp.type === 'damper' || sp.c > 0) {
+        const dampLoss = Math.abs(sp.c * relVel * relVel) * dt;
+        if (bB && !bB.anchored) bB.thermalLoss += dampLoss;
+        else if (bA && !bA.anchored) bA.thermalLoss += dampLoss;
+      }
+
+      const fx = forceMag * nx, fy = forceMag * ny;
+      this.applyForceAtPoint(bA, -fx, -fy, pA.x, pA.y);
+      this.applyForceAtPoint(bB, fx, fy, pB.x, pB.y);
+    }
+
+    // 5. Rotational Motors
+    for (const j of this.joints) {
+      if (j.type !== 'motor') continue;
+      const bA = this.bodies.find(b => b.id === j.bodyA);
+      const bB = this.bodies.find(b => b.id === j.bodyB);
+      const relOmega = (bA ? bA.omega : 0) - (bB ? bB.omega : 0);
+      const err = j.motorSpeed - relOmega;
+      const torque = Math.max(-j.motorTorque, Math.min(j.motorTorque, err * 40));
+      if (bA && !bA.anchored) bA.netTorque += torque;
+      if (bB && !bB.anchored) bB.netTorque -= torque;
+      j.currentForce = Math.abs(torque);
+    }
+
+    // 6. Integrate Linear & Angular Velocities
+    for (const b of this.bodies) {
+      if (b.anchored) {
+        b.ax = 0; b.ay = 0; b.alpha = 0;
+        continue;
+      }
+      b.ax = b.netFx / b.mass;
+      b.ay = b.netFy / b.mass;
+      b.alpha = b.netTorque / b.inertia;
+
+      b.vx += b.ax * dt;
+      b.vy += b.ay * dt;
+      b.omega += b.alpha * dt;
+    }
+
+    // 7. Solve Joints (Pins, Pulleys, Slots) & Rigid-Body Collisions
+    this.solveJoints(dt);
+    this.resolveContacts(dt);
+
+    // 8. Integrate Positions & Angles
+    for (const b of this.bodies) {
+      if (b.anchored) continue;
+      b.x += b.vx * dt;
+      b.y += b.vy * dt;
+      b.angle += b.omega * dt;
+    }
+  }
+
+  solveJoints(dt) {
+    for (const j of this.joints) {
+      const bA = this.bodies.find(b => b.id === j.bodyA);
+      const bB = this.bodies.find(b => b.id === j.bodyB);
+
+      if (j.type === 'pin' || j.type === 'motor') {
+        if (!bA) continue;
+        const pA = this.localToWorld(bA, j.localA.x, j.localA.y);
+        const pB = bB ? this.localToWorld(bB, j.localB.x, j.localB.y) : j.localB;
+
+        const errX = pB.x - pA.x, errY = pB.y - pA.y;
+        const invMA = bA.anchored ? 0 : 1 / bA.mass;
+        const invMB = (!bB || bB.anchored) ? 0 : 1 / bB.mass;
+        const sumM = invMA + invMB;
+        if (sumM === 0) continue;
+
+        // Positional & velocity hinge lock
+        const corrX = (errX * 0.45) / sumM;
+        const corrY = (errY * 0.45) / sumM;
+        if (!bA.anchored) { bA.x += corrX * invMA; bA.y += corrY * invMA; }
+        if (bB && !bB.anchored) { bB.x -= corrX * invMB; bB.y -= corrY * invMB; }
+
+        const vAx = bA.vx - bA.omega * (pA.y - bA.y);
+        const vAy = bA.vy + bA.omega * (pA.x - bA.x);
+        const vBx = bB ? bB.vx - bB.omega * (pB.y - bB.y) : 0;
+        const vBy = bB ? bB.vy + bB.omega * (pB.x - bB.x) : 0;
+
+        const jx = (vBx - vAx) / sumM;
+        const jy = (vBy - vAy) / sumM;
+        if (!bA.anchored) { bA.vx += jx * invMA; bA.vy += jy * invMA; }
+        if (bB && !bB.anchored) { bB.vx -= jx * invMB; bB.vy -= jy * invMB; }
+        j.currentForce = Math.hypot(jx, jy) / dt;
+      }
+
+      else if (j.type === 'pulley') {
+        const pW = j.pulleyAnchor;
+        const pA = this.localToWorld(bA, j.localA.x, j.localA.y);
+        const pB = this.localToWorld(bB, j.localB.x, j.localB.y);
+        const dA = Math.hypot(pA.x - pW.x, pA.y - pW.y);
+        const dB = Math.hypot(pB.x - pW.x, pB.y - pW.y);
+        const excess = (dA + dB) - j.totalLength;
+        if (excess > 0 && dA > 1e-4 && dB > 1e-4) {
+          const uAx = (pW.x - pA.x) / dA, uAy = (pW.y - pA.y) / dA;
+          const uBx = (pW.x - pB.x) / dB, uBy = (pW.y - pB.y) / dB;
+          const invMA = (!bA || bA.anchored) ? 0 : 1 / bA.mass;
+          const invMB = (!bB || bB.anchored) ? 0 : 1 / bB.mass;
+          const sumM = invMA + invMB;
+          if (sumM > 0) {
+            const corr = (excess * 0.5) / sumM;
+            if (bA && !bA.anchored) { bA.x += uAx * corr * invMA; bA.y += uAy * corr * invMA; }
+            if (bB && !bB.anchored) { bB.x += uBx * corr * invMB; bB.y += uBy * corr * invMB; }
+
+            const vRel = (bA ? bA.vx * uAx + bA.vy * uAy : 0) + (bB ? bB.vx * uBx + bB.vy * uBy : 0);
+            if (vRel < 0) {
+              const imp = -vRel / sumM;
+              if (bA && !bA.anchored) { bA.vx += uAx * imp * invMA; bA.vy += uAy * imp * invMA; }
+              if (bB && !bB.anchored) { bB.vx += uBx * imp * invMB; bB.vy += uBy * imp * invMB; }
+              j.currentForce = imp / dt;
+            }
+          }
+        } else {
+          j.currentForce = 0;
+        }
+      }
+
+      else if (j.type === 'slot' && bA && !bA.anchored) {
+        const tx = Math.cos(j.slotAngle), ty = Math.sin(j.slotAngle);
+        const nx = -ty, ny = tx;
+        const dx = bA.x - j.slotOrigin.x, dy = bA.y - j.slotOrigin.y;
+        const offN = dx * nx + dy * ny;
+        bA.x -= offN * nx;
+        bA.y -= offN * ny;
+        const vn = bA.vx * nx + bA.vy * ny;
+        bA.vx -= vn * nx;
+        bA.vy -= vn * ny;
+        bA.angle = j.slotAngle;
+        bA.omega = 0;
+      }
+    }
+  }
+
+  resolveContacts(dt) {
+    // Ground Plane at Y = 0
+    for (const b of this.bodies) {
+      if (b.anchored) continue;
+      if (b.shape === 'circle') {
+        const bottom = b.y - b.radius;
+        if (bottom < 0) {
+          b.y += -bottom;
+          this.applyContactImpulse(b, null, 0, 1, b.x, 0, dt);
+        }
+      } else {
+        const verts = this.getBodyVertices(b);
+        for (const v of verts) {
+          if (v.y < 0) {
+            b.y += -v.y;
+            this.applyContactImpulse(b, null, 0, 1, v.x, 0, dt);
+          }
+        }
+      }
+    }
+
+    // Body-Body Collisions
+    for (let i = 0; i < this.bodies.length; i++) {
+      for (let j = i + 1; j < this.bodies.length; j++) {
+        const A = this.bodies[i], B = this.bodies[j];
+        if (A.anchored && B.anchored) continue;
+        this.collideBodies(A, B, dt);
+      }
+    }
+  }
+
+  collideBodies(A, B, dt) {
+    // Circle vs Circle
+    if (A.shape === 'circle' && B.shape === 'circle') {
+      const dx = B.x - A.x, dy = B.y - A.y;
+      const dist = Math.hypot(dx, dy);
+      const minDist = A.radius + B.radius;
+      if (dist < minDist && dist > 1e-6) {
+        const nx = dx / dist, ny = dy / dist;
+        const pen = minDist - dist;
+        const invMA = A.anchored ? 0 : 1 / A.mass;
+        const invMB = B.anchored ? 0 : 1 / B.mass;
+        const sum = invMA + invMB;
+        A.x -= nx * (pen * invMA / sum);
+        A.y -= ny * (pen * invMA / sum);
+        B.x += nx * (pen * invMB / sum);
+        B.y += ny * (pen * invMB / sum);
+        const cx = A.x + nx * A.radius, cy = A.y + ny * A.radius;
+        this.applyContactImpulse(B, A, nx, ny, cx, cy, dt);
+      }
+      return;
+    }
+
+    // Polygon / Box / Circle SAT
+    const polyA = A.shape === 'circle' ? this.circleToPoly(A) : this.getBodyVertices(A);
+    const polyB = B.shape === 'circle' ? this.circleToPoly(B) : this.getBodyVertices(B);
+    const sat = this.satTest(polyA, polyB);
+    if (!sat) return;
+
+    let nx = sat.nx, ny = sat.ny;
+    if ((B.x - A.x) * nx + (B.y - A.y) * ny < 0) { nx = -nx; ny = -ny; }
+
+    const invMA = A.anchored ? 0 : 1 / A.mass;
+    const invMB = B.anchored ? 0 : 1 / B.mass;
+    const sum = invMA + invMB;
+    if (sum === 0) return;
+
+    A.x -= nx * (sat.overlap * invMA / sum);
+    A.y -= ny * (sat.overlap * invMA / sum);
+    B.x += nx * (sat.overlap * invMB / sum);
+    B.y += ny * (sat.overlap * invMB / sum);
+
+    // Find deepest contact points on B inside A (and vice versa)
+    const contactPts = [];
+    for (const v of polyB) {
+      if (this.pointInPolygon(v.x - nx * 0.01, v.y - ny * 0.01, polyA)) contactPts.push(v);
+    }
+    for (const v of polyA) {
+      if (this.pointInPolygon(v.x + nx * 0.01, v.y + ny * 0.01, polyB)) contactPts.push(v);
+    }
+    if (contactPts.length === 0) {
+      contactPts.push({ x: (A.x + B.x) / 2, y: (A.y + B.y) / 2 });
+    }
+
+    const share = 1 / contactPts.length;
+    for (const cp of contactPts) {
+      this.applyContactImpulse(B, A, nx, ny, cp.x, cp.y, dt, share);
+    }
+  }
+
+  applyContactImpulse(B, A, nx, ny, cx, cy, dt, weight = 1) {
+    // Normal points from A to B
+    const invMA = (!A || A.anchored) ? 0 : 1 / A.mass;
+    const invMB = (!B || B.anchored) ? 0 : 1 / B.mass;
+    const invIA = (!A || A.anchored) ? 0 : 1 / A.inertia;
+    const invIB = (!B || B.anchored) ? 0 : 1 / B.inertia;
+
+    const rAx = A ? cx - A.x : 0, rAy = A ? cy - A.y : 0;
+    const rBx = B ? cx - B.x : 0, rBy = B ? cy - B.y : 0;
+
+    const vAx = A ? A.vx - A.omega * rAy : 0;
+    const vAy = A ? A.vy + A.omega * rAx : 0;
+    const vBx = B ? B.vx - B.omega * rBy : 0;
+    const vBy = B ? B.vy + B.omega * rBx : 0;
+
+    const rvx = vBx - vAx, rvy = vBy - vAy;
+    const vn = rvx * nx + rvy * ny;
+
+    const rAcn = rAx * ny - rAy * nx;
+    const rBcn = rBx * ny - rBy * nx;
+    const kNormal = invMA + invMB + rAcn * rAcn * invIA + rBcn * rBcn * invIB;
+    if (kNormal <= 1e-9) return;
+
+    const e = A ? Math.min(A.restitution, B.restitution) : B.restitution;
+    let jn = 0;
+    if (vn < 0) {
+      jn = -(1 + e) * vn / kNormal * weight;
+      if (A && !A.anchored) {
+        A.vx -= jn * nx * invMA;
+        A.vy -= jn * ny * invMA;
+        A.omega -= rAcn * jn * invIA;
+      }
+      if (B && !B.anchored) {
+        B.vx += jn * nx * invMB;
+        B.vy += jn * ny * invMB;
+        B.omega += rBcn * jn * invIB;
+      }
+    }
+
+    // Continuous normal force estimate for Coulomb friction & vectors
+    const gravN = B && !B.anchored ? Math.max(0, -(B.netFx * nx + B.netFy * ny)) * dt * weight : 0;
+    const totalJn = Math.max(jn, gravN);
+    const normalForce = totalJn / dt;
+
+    if (B && !B.anchored) {
+      B.normalFx += normalForce * nx;
+      B.normalFy += normalForce * ny;
+    }
+
+    // Tangential Coulomb Friction Impulse (enables both sliding & rolling!)
+    const tx = -ny, ty = nx;
+    const vAx2 = A ? A.vx - A.omega * rAy : 0;
+    const vAy2 = A ? A.vy + A.omega * rAx : 0;
+    const vBx2 = B ? B.vx - B.omega * rBy : 0;
+    const vBy2 = B ? B.vy + B.omega * rBx : 0;
+    const vt = (vBx2 - vAx2) * tx + (vBy2 - vAy2) * ty;
+
+    const rAct = rAx * ty - rAy * tx;
+    const rBct = rBx * ty - rBy * tx;
+    const kTangent = invMA + invMB + rAct * rAct * invIA + rBct * rBct * invIB;
+    if (kTangent <= 1e-9 || totalJn <= 0) return;
+
+    const mu_s = A ? Math.max(A.mu_s, B.mu_s) : B.mu_s;
+    const mu_k = A ? Math.max(A.mu_k, B.mu_k) : B.mu_k;
+
+    let jt = -vt / kTangent;
+    const maxStatic = mu_s * totalJn;
+    if (Math.abs(jt) > maxStatic) {
+      jt = -Math.sign(vt) * mu_k * totalJn;
+    }
+
+    if (A && !A.anchored) {
+      A.vx -= jt * tx * invMA;
+      A.vy -= jt * ty * invMA;
+      A.omega -= rAct * jt * invIA;
+    }
+    if (B && !B.anchored) {
+      B.vx += jt * tx * invMB;
+      B.vy += jt * ty * invMB;
+      B.omega += rBct * jt * invIB;
+      B.fricFx += (jt / dt) * tx;
+      B.fricFy += (jt / dt) * ty;
+      if (Math.abs(vt) > 1e-4) {
+        B.thermalLoss += Math.abs(jt * vt);
+      }
+    }
+  }
+
+  circleToPoly(c) {
+    const pts = [];
+    for (let i = 0; i < 16; i++) {
+      const a = (i / 16) * Math.PI * 2;
+      pts.push({ x: c.x + Math.cos(a) * c.radius, y: c.y + Math.sin(a) * c.radius });
+    }
+    return pts;
+  }
+
+  satTest(polyA, polyB) {
+    let minOverlap = Infinity, bestAxis = null;
+    for (const poly of [polyA, polyB]) {
+      for (let i = 0; i < poly.length; i++) {
+        const p1 = poly[i], p2 = poly[(i + 1) % poly.length];
+        const ex = p2.x - p1.x, ey = p2.y - p1.y;
+        const len = Math.hypot(ex, ey);
+        if (len < 1e-6) continue;
+        const nx = -ey / len, ny = ex / len;
+
+        let minA = Infinity, maxA = -Infinity;
+        for (const p of polyA) {
+          const proj = p.x * nx + p.y * ny;
+          if (proj < minA) minA = proj;
+          if (proj > maxA) maxA = proj;
+        }
+        let minB = Infinity, maxB = -Infinity;
+        for (const p of polyB) {
+          const proj = p.x * nx + p.y * ny;
+          if (proj < minB) minB = proj;
+          if (proj > maxB) maxB = proj;
+        }
+        const overlap = Math.min(maxA, maxB) - Math.max(minA, minB);
+        if (overlap <= 0) return null;
+        if (overlap < minOverlap) {
+          minOverlap = overlap;
+          bestAxis = { nx, ny, overlap };
+        }
+      }
+    }
+    return bestAxis;
+  }
+
+  /* ==================== SIMULATION LOOP & MEASUREMENTS ==================== */
+  startSim() {
+    if (this.running) return;
+    if (this.time === 0) this.captureInitialSnapshot();
+    this.running = true;
+    document.getElementById('btn-run').disabled = true;
+    document.getElementById('btn-stop').disabled = false;
+    this.loop();
+  }
+
+  stopSim() {
+    this.running = false;
+    document.getElementById('btn-run').disabled = false;
+    document.getElementById('btn-stop').disabled = true;
+    this.updatePropertiesWindow();
+    this.render();
+  }
+
+  stepSim() {
+    if (this.running) this.stopSim();
+    if (this.time === 0) this.captureInitialSnapshot();
+    this.advanceOneFrame();
+    this.updatePropertiesWindow();
+    this.render();
+  }
+
+  resetSim() {
+    this.stopSim();
+    if (this.initialSnapshot) this.restoreSnapshot(this.initialSnapshot);
+    this.time = 0;
+    this.frame = 0;
+    this.trails = [];
+    this.history = [];
+    this.recordTelemetry();
+    this.updateMeasureWindow();
+    this.updateStatus();
+    this.updatePropertiesWindow();
+    this.render();
+  }
+
+  advanceOneFrame() {
+    const frameDt = this.baseDt * this.simSpeed;
+    const subDt = frameDt / this.subSteps;
+    for (let s = 0; s < this.subSteps; s++) {
+      this.stepPhysics(subDt);
+    }
+    this.time += frameDt;
+    this.frame++;
+
+    if (this.tracking && this.frame % 3 === 0) {
+      for (const b of this.bodies) {
+        if (!b.anchored) this.trails.push({ x: b.x, y: b.y });
+      }
+      if (this.trails.length > 750) this.trails.splice(0, this.trails.length - 750);
+    }
+
+    this.recordTelemetry();
+    this.updateMeasureWindow();
+    this.updateStatus();
+  }
+
+  loop() {
+    if (!this.running) return;
+    this.advanceOneFrame();
+    if (this.frame % 4 === 0) this.updatePropertiesWindow();
+    this.render();
+    requestAnimationFrame(() => this.loop());
+  }
+
+  getTrackedBody() {
+    if (this.selected && this.selected.type === 'body') {
+      const b = this.bodies.find(x => x.id === this.selected.id);
+      if (b) return b;
+    }
+    return this.bodies.find(b => !b.anchored) || this.bodies[0] || null;
+  }
+
+  computeSystemElasticEnergy() {
+    let us = 0;
+    for (const sp of this.springs) {
+      if (sp.type !== 'spring') continue;
+      const bA = this.bodies.find(b => b.id === sp.bodyA);
+      const bB = this.bodies.find(b => b.id === sp.bodyB);
+      const pA = this.localToWorld(bA, sp.localA.x, sp.localA.y);
+      const pB = this.localToWorld(bB, sp.localB.x, sp.localB.y);
+      const dx = Math.hypot(pB.x - pA.x, pB.y - pA.y) - sp.restLength;
+      us += 0.5 * sp.k * dx * dx;
+    }
+    return us;
+  }
+
+  recordTelemetry() {
+    const b = this.getTrackedBody();
+    if (!b) return;
+    const speed = Math.hypot(b.vx, b.vy);
+    const accel = Math.hypot(b.ax, b.ay);
+    const ke = 0.5 * b.mass * (b.vx * b.vx + b.vy * b.vy) + (isFinite(b.inertia) ? 0.5 * b.inertia * b.omega * b.omega : 0);
+    const ug = b.mass * this.gravity * Math.max(0, b.y);
+    const us = this.computeSystemElasticEnergy();
+    const totalE = ke + ug + us;
+
+    let distUpIncline = 0;
+    if (this.prob8Ref && b.id === this.prob8Ref.bodyId) {
+      distUpIncline = Math.max(0, Math.hypot(b.x - this.prob8Ref.x0, b.y - this.prob8Ref.y0));
+    }
+
+    this.history.push({
+      t: this.time,
+      x: b.x, y: b.y, angle: b.angle * 180 / Math.PI,
+      vx: b.vx, vy: b.vy, speed, omega: b.omega,
+      ax: b.ax, ay: b.ay, accel,
+      ke, ug, us, totalE, loss: b.thermalLoss,
+      px: b.mass * b.vx, py: b.mass * b.vy,
+      fnet: Math.hypot(b.netFx, b.netFy),
+      fnorm: Math.hypot(b.normalFx, b.normalFy),
+      ffric: Math.hypot(b.fricFx, b.fricFy),
+      distUpIncline
+    });
+    if (this.history.length > 500) this.history.shift();
+  }
+
+  setMeasureMode(mode) {
+    this.measureMode = mode;
+    document.getElementById('measure-mode-select').value = mode;
+    this.updateMeasureWindow();
+  }
+
+  updateMeasureWindow() {
+    const table = document.getElementById('measure-table');
+    const legend = document.getElementById('measure-legend');
+    const latest = this.history[this.history.length - 1];
+    if (!latest) {
+      table.innerHTML = `<tr><td class="lbl">Status</td><td class="val">No Body</td></tr>`;
+      return;
+    }
+
+    const m = this.measureMode;
+    let rows = [];
+    let series = [];
+
+    if (m === 'dashboard') {
+      const dLabel = this.prob8Ref ? 'Distance d (m)' : 'Displacement (m)';
+      const dVal = this.prob8Ref ? latest.distUpIncline : Math.hypot(latest.x, latest.y);
+      rows = [
+        [dLabel, dVal.toFixed(3) + ' m'],
+        ['Speed |V|', latest.speed.toFixed(2) + ' m/s'],
+        ['Kinetic K / Grav Ug', `${latest.ke.toFixed(2)} / ${latest.ug.toFixed(2)} J`],
+        ['Spring Us / Loss Q', `${latest.us.toFixed(2)} / ${latest.loss.toFixed(2)} J`]
+      ];
+      series = [
+        { key: 'distUpIncline', label: 'Dist d (m)', color: '#000080' },
+        { key: 'speed', label: 'Speed |V|', color: '#008800' },
+        { key: 'ke', label: 'KE (J)', color: '#CC0000' },
+        { key: 'ug', label: 'Ug (J)', color: '#CC6600' }
+      ];
+    } else if (m === 'energy') {
+      rows = [
+        ['Kinetic Energy (K)', latest.ke.toFixed(3) + ' J'],
+        ['Grav Potential (Ug)', latest.ug.toFixed(3) + ' J'],
+        ['Spring Elastic (Us)', latest.us.toFixed(3) + ' J'],
+        ['Total E / Friction Loss', `${latest.totalE.toFixed(2)} / ${latest.loss.toFixed(2)} J`]
+      ];
+      series = [
+        { key: 'ke', label: 'K (J)', color: '#CC0000' },
+        { key: 'ug', label: 'Ug (J)', color: '#008800' },
+        { key: 'us', label: 'Us (J)', color: '#000080' },
+        { key: 'totalE', label: 'Total E (J)', color: '#000000' }
+      ];
+    } else if (m === 'position') {
+      rows = [
+        ['X Position', latest.x.toFixed(3) + ' m'],
+        ['Y Position', latest.y.toFixed(3) + ' m'],
+        ['Rotation Angle θ', latest.angle.toFixed(1) + ' °']
+      ];
+      series = [
+        { key: 'x', label: 'X (m)', color: '#000080' },
+        { key: 'y', label: 'Y (m)', color: '#008800' }
+      ];
+    } else if (m === 'velocity') {
+      rows = [
+        ['Vx / Vy', `${latest.vx.toFixed(2)} / ${latest.vy.toFixed(2)} m/s`],
+        ['Speed |V|', latest.speed.toFixed(3) + ' m/s'],
+        ['Angular ω', latest.omega.toFixed(2) + ' rad/s']
+      ];
+      series = [
+        { key: 'speed', label: '|V| (m/s)', color: '#000080' },
+        { key: 'vx', label: 'Vx', color: '#008800' },
+        { key: 'vy', label: 'Vy', color: '#CC0000' }
+      ];
+    } else if (m === 'acceleration') {
+      rows = [
+        ['Ax / Ay', `${latest.ax.toFixed(2)} / ${latest.ay.toFixed(2)} m/s²`],
+        ['Magnitude |A|', latest.accel.toFixed(3) + ' m/s²']
+      ];
+      series = [
+        { key: 'accel', label: '|A| (m/s²)', color: '#8800AA' },
+        { key: 'ax', label: 'Ax', color: '#000080' },
+        { key: 'ay', label: 'Ay', color: '#CC0000' }
+      ];
+    } else if (m === 'momentum') {
+      rows = [
+        ['Linear Px', latest.px.toFixed(3) + ' kg·m/s'],
+        ['Linear Py', latest.py.toFixed(3) + ' kg·m/s']
+      ];
+      series = [
+        { key: 'px', label: 'Px', color: '#000080' },
+        { key: 'py', label: 'Py', color: '#008800' }
+      ];
+    } else if (m === 'forces') {
+      rows = [
+        ['Net Force |F|', latest.fnet.toFixed(2) + ' N'],
+        ['Normal Force N', latest.fnorm.toFixed(2) + ' N'],
+        ['Friction Force fk', latest.ffric.toFixed(2) + ' N']
+      ];
+      series = [
+        { key: 'fnet', label: '|Fnet| (N)', color: '#CC0000' },
+        { key: 'fnorm', label: 'Normal N', color: '#008888' },
+        { key: 'ffric', label: 'Friction fk', color: '#CC5500' }
+      ];
+    }
+
+    table.innerHTML = rows.map(r => `<tr><td class="lbl">${r[0]}</td><td class="val">${r[1]}</td></tr>`).join('');
+    legend.innerHTML = series.map(s => `<span class="legend-item"><span class="legend-swatch" style="background:${s.color};"></span>${s.label}</span>`).join('');
+    this.drawStripChart(series);
+  }
+
+  drawStripChart(series) {
+    const canvas = document.getElementById('measure-graph');
+    const ctx = canvas.getContext('2d');
+    const W = canvas.width, H = canvas.height;
+    ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(0, 0, W, H);
+
+    // Strip Chart Grid
+    ctx.strokeStyle = '#E4E4E4';
+    ctx.lineWidth = 1;
+    for (let gx = 0; gx <= W; gx += 48) {
+      ctx.beginPath(); ctx.moveTo(gx, 0); ctx.lineTo(gx, H); ctx.stroke();
+    }
+    for (let gy = 0; gy <= H; gy += 28) {
+      ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(W, gy); ctx.stroke();
+    }
+
+    if (this.history.length < 2) return;
+
+    let minV = Infinity, maxV = -Infinity;
+    for (const pt of this.history) {
+      for (const s of series) {
+        const v = pt[s.key] ?? 0;
+        if (v < minV) minV = v;
+        if (v > maxV) maxV = v;
+      }
+    }
+    if (!isFinite(minV)) { minV = 0; maxV = 1; }
+    if (Math.abs(maxV - minV) < 0.2) { maxV += 0.5; minV = Math.min(0, minV - 0.1); }
+    const span = maxV - minV;
+
+    // Zero baseline if within range
+    if (minV < 0 && maxV > 0) {
+      const zeroY = H - 8 - ((0 - minV) / span) * (H - 16);
+      ctx.strokeStyle = '#A0A0A0';
+      ctx.beginPath(); ctx.moveTo(0, zeroY); ctx.lineTo(W, zeroY); ctx.stroke();
+    }
+
+    // Plot each variable curve
+    for (const s of series) {
+      ctx.strokeStyle = s.color;
+      ctx.lineWidth = 1.6;
+      ctx.beginPath();
+      this.history.forEach((pt, idx) => {
+        const px = (idx / Math.max(1, this.history.length - 1)) * (W - 6) + 3;
+        const py = H - 8 - (((pt[s.key] ?? 0) - minV) / span) * (H - 16);
+        if (idx === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+      });
+      ctx.stroke();
+    }
+
+    // Axis scale labels
+    ctx.fillStyle = '#333';
+    ctx.font = '9px Tahoma';
+    ctx.fillText(maxV.toFixed(1), 3, 10);
+    ctx.fillText(minV.toFixed(1), 3, H - 3);
+  }
+
+  /* ==================== FILE SAVE / LOAD JSON / EXPORT CSV ==================== */
+  saveJSON() {
+    const payload = {
+      app: 'Interactive Physics Web Edition',
+      gravity: this.gravity,
+      airDragCoeff: this.airDragCoeff,
+      electrostatics: this.electrostatics,
+      bodies: this.bodies,
+      springs: this.springs,
+      joints: this.joints,
+      forces: this.forces
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'InteractivePhysics_Simulation.json';
+    a.click();
+  }
+
+  triggerOpenJSON() {
+    document.getElementById('json-file-input').click();
+  }
+
+  handleOpenJSONFile(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const data = JSON.parse(ev.target.result);
+        this.newWorld();
+        this.gravity = data.gravity ?? 9.8;
+        this.airDragCoeff = data.airDragCoeff ?? 0;
+        this.electrostatics = Boolean(data.electrostatics);
+        this.bodies = data.bodies || [];
+        this.springs = data.springs || [];
+        this.joints = data.joints || [];
+        this.forces = data.forces || [];
+        document.getElementById('window-title-text').textContent = `Interactive Physics - [${file.name}]`;
+        this.captureInitialSnapshot();
+        this.recordTelemetry();
+        this.updateMeasureWindow();
+        this.render();
+      } catch (err) {
+        document.getElementById('st-hint').textContent = 'Error loading JSON file.';
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  }
+
+  exportCSV() {
+    if (!this.history.length) return;
+    const headers = ['time_s', 'x_m', 'y_m', 'angle_deg', 'vx_ms', 'vy_ms', 'speed_ms', 'omega_rads', 'ax_ms2', 'ay_ms2', 'KE_J', 'Ug_J', 'Us_J', 'TotalE_J', 'ThermalLoss_J', 'Fnet_N', 'Normal_N', 'Friction_N', 'DistIncline_m'];
+    const lines = [headers.join(',')];
+    for (const r of this.history) {
+      lines.push([
+        r.t.toFixed(4), r.x.toFixed(4), r.y.toFixed(4), r.angle.toFixed(2),
+        r.vx.toFixed(4), r.vy.toFixed(4), r.speed.toFixed(4), r.omega.toFixed(4),
+        r.ax.toFixed(4), r.ay.toFixed(4), r.ke.toFixed(4), r.ug.toFixed(4),
+        r.us.toFixed(4), r.totalE.toFixed(4), r.loss.toFixed(4),
+        r.fnet.toFixed(4), r.fnorm.toFixed(4), r.ffric.toFixed(4), r.distUpIncline.toFixed(4)
+      ].join(','));
+    }
+    const blob = new Blob([lines.join('\n')], { type: 'text/csv' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'InteractivePhysics_Data.csv';
+    a.click();
+  }
+
+  /* ==================== MENU ACTIONS & DIALOGS ==================== */
+  setGravity(g) {
+    this.gravity = g;
+    document.getElementById('chk-grav-earth').classList.toggle('checked', Math.abs(g - 9.8) < 0.01);
+    document.getElementById('chk-grav-moon').classList.toggle('checked', Math.abs(g - 1.62) < 0.01);
+    document.getElementById('chk-grav-zero').classList.toggle('checked', g === 0);
+    this.render();
+  }
+
+  setAirDrag(c) {
+    this.airDragCoeff = c;
+    document.getElementById('chk-drag-off').classList.toggle('checked', c === 0);
+    document.getElementById('chk-drag-low').classList.toggle('checked', Math.abs(c - 0.08) < 0.01);
+    document.getElementById('chk-drag-high').classList.toggle('checked', Math.abs(c - 0.35) < 0.01);
+  }
+
+  setSimSpeed(val) {
+    this.simSpeed = parseFloat(val) || 1.0;
+    document.getElementById('sim-speed-val').textContent = this.simSpeed.toFixed(2) + 'x';
+  }
+
+  toggleOption(opt) {
+    this[opt] = !this[opt];
+    const map = {
+      electrostatics: ['chk-electro'],
+      showGrid: ['chk-grid', 'tb-grid'],
+      snapToGrid: ['chk-snap', 'tb-snap'],
+      showRulers: ['chk-rulers'],
+      showAxes: ['chk-axes'],
+      tracking: ['chk-track', 'tb-trace'],
+      showCOM: ['chk-com'],
+      vecVel: ['chk-vec-vel'],
+      vecAcc: ['chk-vec-acc'],
+      vecForce: ['chk-vec-force'],
+      vecGrav: ['chk-vec-grav'],
+      vecNorm: ['chk-vec-norm'],
+      vecFric: ['chk-vec-fric']
+    };
+    (map[opt] || []).forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.classList.toggle('checked', this[opt]);
+      if (el && el.classList.contains('tb-btn')) el.classList.toggle('active', this[opt]);
+    });
+    this.render();
+  }
+
+  toggleAllVectors() {
+    this.showVectors = !this.showVectors;
+    document.getElementById('chk-vec-all').classList.toggle('checked', this.showVectors);
+    document.getElementById('tb-vec').classList.toggle('active', this.showVectors);
+    this.render();
+  }
+
+  toggleFloatingWin(winId, chkId, forceState) {
+    const win = document.getElementById(winId);
+    const show = forceState !== undefined ? forceState : win.style.display === 'none';
+    win.style.display = show ? 'block' : 'none';
+    const chk = document.getElementById(chkId);
+    if (chk) chk.classList.toggle('checked', show);
+    if (winId === 'props-window') document.getElementById('tb-props').classList.toggle('active', show);
+    if (winId === 'measure-window') document.getElementById('tb-meas').classList.toggle('active', show);
+  }
+
+  collapseFloatingWindows() {
+    this.toggleFloatingWin('props-window', 'chk-win-props', false);
+    this.toggleFloatingWin('measure-window', 'chk-win-meas', false);
+  }
+
+  cascadeWindows() {
+    const p = document.getElementById('props-window');
+    const m = document.getElementById('measure-window');
+    this.toggleFloatingWin('props-window', 'chk-win-props', true);
+    this.toggleFloatingWin('measure-window', 'chk-win-meas', true);
+    p.style.left = '24px'; p.style.top = '24px'; p.style.right = 'auto'; p.style.bottom = 'auto';
+    m.style.left = '48px'; m.style.top = '52px'; m.style.right = 'auto'; m.style.bottom = 'auto';
+  }
+
+  resetLayout() {
+    const p = document.getElementById('props-window');
+    const m = document.getElementById('measure-window');
+    this.toggleFloatingWin('props-window', 'chk-win-props', true);
+    this.toggleFloatingWin('measure-window', 'chk-win-meas', true);
+    p.style.left = 'auto'; p.style.right = '10px'; p.style.top = '24px'; p.style.bottom = 'auto';
+    m.style.left = '16px'; m.style.right = 'auto'; m.style.top = 'auto'; m.style.bottom = '12px';
+  }
+
+  zoom(factor) {
+    this.ppm = Math.max(20, Math.min(400, this.ppm * factor));
+    document.getElementById('st-zoom').textContent = `Zoom: ${Math.round((this.ppm / 90) * 100)}%`;
+    this.render();
+  }
+
+  fitView() {
+    if (!this.bodies.length) {
+      this.ppm = 90; this.camX = 0; this.camY = 2.0;
+    } else {
+      let minX = Infinity, maxX = -Infinity, minY = 0, maxY = 2;
+      for (const b of this.bodies) {
+        minX = Math.min(minX, b.x - 1);
+        maxX = Math.max(maxX, b.x + 1);
+        minY = Math.min(minY, b.y - 0.5);
+        maxY = Math.max(maxY, b.y + 1);
+      }
+      this.camX = (minX + maxX) / 2;
+      this.camY = (minY + maxY) / 2;
+      const spanX = Math.max(2, maxX - minX);
+      const spanY = Math.max(2, maxY - minY);
+      this.ppm = Math.max(30, Math.min(180, Math.min(this.canvas.width / spanX, this.canvas.height / spanY) * 0.75));
+    }
+    document.getElementById('st-zoom').textContent = `Zoom: ${Math.round((this.ppm / 90) * 100)}%`;
+    this.render();
+  }
+
+  openGravityDialog() {
+    document.getElementById('modal-title').textContent = 'World Gravity';
+    document.getElementById('modal-body').innerHTML = `
+      <div style="margin-bottom:6px;">Downward Gravitational Acceleration g (m/s²):</div>
+      <input id="grav-val-in" class="bevel-in prop-input" type="number" step="0.1" value="${this.gravity}">
+      <div style="margin-top:10px; display:flex; justify-content:flex-end; gap:5px;">
+        <button class="win-btn" onclick="app.setGravity(0); app.closeModal();">Zero-G</button>
+        <button class="win-btn" onclick="app.setGravity(9.8); app.closeModal();">9.8 m/s²</button>
+        <button class="win-btn" style="font-weight:bold;" onclick="app.setGravity(parseFloat(document.getElementById('grav-val-in').value)||0); app.closeModal();">OK</button>
+      </div>
+    `;
+    document.getElementById('modal-overlay').style.display = 'flex';
+  }
+
+  openAccuracyDialog() {
+    document.getElementById('modal-title').textContent = 'Simulation Accuracy';
+    document.getElementById('modal-body').innerHTML = `
+      <div style="margin-bottom:6px;">Physics Sub-steps per 60Hz Frame (Higher = stiffer springs & contacts):</div>
+      <input id="substeps-in" class="bevel-in prop-input" type="number" min="4" max="40" step="2" value="${this.subSteps}">
+      <div style="margin-top:10px; display:flex; justify-content:flex-end; gap:5px;">
+        <button class="win-btn" style="font-weight:bold;" onclick="app.subSteps=Math.max(4,Math.min(40,parseInt(document.getElementById('substeps-in').value)||12)); app.closeModal();">OK</button>
+      </div>
+    `;
+    document.getElementById('modal-overlay').style.display = 'flex';
+  }
+
+  openVectorScaleDialog() {
+    document.getElementById('modal-title').textContent = 'Vector Display Scale';
+    document.getElementById('modal-body').innerHTML = `
+      <div style="margin-bottom:6px;">Arrow Visual Length Multiplier:</div>
+      <input id="vecscale-in" class="bevel-in prop-input" type="number" min="0.2" max="5" step="0.2" value="${this.vecScale}">
+      <div style="margin-top:10px; display:flex; justify-content:flex-end; gap:5px;">
+        <button class="win-btn" style="font-weight:bold;" onclick="app.vecScale=parseFloat(document.getElementById('vecscale-in').value)||1; app.closeModal();">OK</button>
+      </div>
+    `;
+    document.getElementById('modal-overlay').style.display = 'flex';
+  }
+
+  openScriptInspector() {
+    const b = this.getTrackedBody();
+    const formulaText = b ? `Body: ${b.name}\nPosition: (${b.x.toFixed(3)}, ${b.y.toFixed(3)}) m\nVelocity: (${b.vx.toFixed(3)}, ${b.vy.toFixed(3)}) m/s\nMass: ${b.mass} kg | Inertia: ${isFinite(b.inertia)?b.inertia.toFixed(4):'Inf'} kg*m^2\nFriction: mu_s=${b.mu_s}, mu_k=${b.mu_k}\nGravity: g=${this.gravity} m/s^2` : 'No body in world.';
+    document.getElementById('modal-title').textContent = 'Script / Formula Inspector';
+    document.getElementById('modal-body').innerHTML = `
+      <textarea class="bevel-in" style="width:100%; height:130px; font-family:Consolas,monospace; padding:4px;" readonly>${formulaText}</textarea>
+      <div style="margin-top:8px; text-align:right;"><button class="win-btn" onclick="app.closeModal()">Close</button></div>
+    `;
+    document.getElementById('modal-overlay').style.display = 'flex';
+  }
+
+  openHelpDialog() {
+    document.getElementById('modal-title').textContent = 'Interactive Physics - Quick Guide';
+    document.getElementById('modal-body').innerHTML = `
+      <div style="line-height:1.45;">
+        <b>1. Run / Stop / Reset:</b> Use top toolbar or <b>Spacebar</b>.<br>
+        <b>2. Select & Edit:</b> Tap any object to open its tabbed <b>Properties</b>. Drag black corner handles to resize, or the top circle handle to rotate.<br>
+        <b>3. Build Mechanisms:</b> Use the 2-column left palette to draw Blocks, Disks, Polygons, Anchors, Pin Hinges, Rods, Ropes, Pulleys, Springs, Dampers, Forces, Motors & Slot tracks.<br>
+        <b>4. Touch & Mobile:</b> Pinch with two fingers to zoom, drag with Pan tool, and export CSV graphs anytime.
+      </div>
+      <div style="margin-top:10px; text-align:right;"><button class="win-btn" onclick="app.closeModal()">OK</button></div>
+    `;
+    document.getElementById('modal-overlay').style.display = 'flex';
+  }
+
+  openEngineInfoDialog() {
+    document.getElementById('modal-title').textContent = 'Physics Engine Specifications';
+    document.getElementById('modal-body').innerHTML = `
+      <div style="line-height:1.45;">
+        <b>Solver:</b> 2D Rigid-Body Sequential Impulse Solver (${this.subSteps}x sub-stepping at 60Hz)<br>
+        <b>Collisions:</b> Separating Axis Theorem (SAT) + Multi-Point Contact Manifold + Coulomb Static/Kinetic Friction<br>
+        <b>Rotational Dynamics:</b> Full Moment of Inertia I, Torque τ, Angular Velocity ω, Rolling & Sliding
+      </div>
+      <div style="margin-top:10px; text-align:right;"><button class="win-btn" onclick="app.closeModal()">OK</button></div>
+    `;
+    document.getElementById('modal-overlay').style.display = 'flex';
+  }
+
+  closeModal() {
+    document.getElementById('modal-overlay').style.display = 'none';
+    this.render();
+  }
+
+  /* ==================== OBJECT & UNDO OPERATIONS ==================== */
+  captureInitialSnapshot() {
+    this.initialSnapshot = JSON.stringify({
+      bodies: this.bodies,
+      springs: this.springs,
+      joints: this.joints,
+      forces: this.forces,
+      prob8Ref: this.prob8Ref
+    });
+  }
+
+  restoreSnapshot(snap) {
+    const d = JSON.parse(snap);
+    this.bodies = d.bodies || [];
+    this.springs = d.springs || [];
+    this.joints = d.joints || [];
+    this.forces = d.forces || [];
+    this.prob8Ref = d.prob8Ref || null;
+  }
+
+  saveUndo() {
+    this.undoStack.push(JSON.stringify({
+      bodies: this.bodies,
+      springs: this.springs,
+      joints: this.joints,
+      forces: this.forces,
+      prob8Ref: this.prob8Ref
+    }));
+    if (this.undoStack.length > 25) this.undoStack.shift();
+  }
+
+  undo() {
+    if (!this.undoStack.length) return;
+    this.stopSim();
+    this.restoreSnapshot(this.undoStack.pop());
+    this.selected = null;
+    this.updatePropertiesWindow();
+    this.render();
+  }
+
+  duplicateSelected() {
+    if (!this.selected || this.selected.type !== 'body') return;
+    const orig = this.bodies.find(b => b.id === this.selected.id);
+    if (!orig) return;
+    this.saveUndo();
+    const copy = JSON.parse(JSON.stringify(orig));
+    copy.id = this.uid();
+    copy.name = orig.name + ' Copy';
+    copy.x += 0.35;
+    copy.y += 0.35;
+    this.bodies.push(copy);
+    this.selectEntity('body', copy.id);
+    if (!this.running) this.captureInitialSnapshot();
+  }
+
+  deleteSelected() {
+    if (!this.selected) return;
+    this.saveUndo();
+    const { type, id } = this.selected;
+    if (type === 'body') {
+      this.bodies = this.bodies.filter(b => b.id !== id);
+      this.springs = this.springs.filter(s => s.bodyA !== id && s.bodyB !== id);
+      this.joints = this.joints.filter(j => j.bodyA !== id && j.bodyB !== id);
+      this.forces = this.forces.filter(f => f.bodyId !== id);
+    } else if (type === 'spring') {
+      this.springs = this.springs.filter(s => s.id !== id);
+    } else if (type === 'joint') {
+      this.joints = this.joints.filter(j => j.id !== id);
+    } else if (type === 'force') {
+      this.forces = this.forces.filter(f => f.id !== id);
+    }
+    this.selected = null;
+    if (!this.running) this.captureInitialSnapshot();
+    this.updatePropertiesWindow();
+    this.render();
+  }
+
+  selectAll() {
+    if (this.bodies.length) this.selectEntity('body', this.bodies[0].id);
+  }
+
+  bringToFront() {
+    if (!this.selected || this.selected.type !== 'body') return;
+    const idx = this.bodies.findIndex(b => b.id === this.selected.id);
+    if (idx >= 0) { const [b] = this.bodies.splice(idx, 1); this.bodies.push(b); this.render(); }
+  }
+
+  sendToBack() {
+    if (!this.selected || this.selected.type !== 'body') return;
+    const idx = this.bodies.findIndex(b => b.id === this.selected.id);
+    if (idx >= 0) { const [b] = this.bodies.splice(idx, 1); this.bodies.unshift(b); this.render(); }
+  }
+
+  toggleAnchorSelected() {
+    if (!this.selected || this.selected.type !== 'body') return;
+    const b = this.bodies.find(x => x.id === this.selected.id);
+    if (b) {
+      b.anchored = !b.anchored;
+      b.vx = 0; b.vy = 0; b.omega = 0;
+      b.inertia = this.computeInertia(b);
+      this.updatePropertiesWindow();
+      this.render();
+    }
+  }
+
+  toggleShapeSelected() {
+    if (!this.selected || this.selected.type !== 'body') return;
+    const b = this.bodies.find(x => x.id === this.selected.id);
+    if (b) {
+      b.shape = b.shape === 'circle' ? 'rect' : 'circle';
+      b.inertia = this.computeInertia(b);
+      this.updatePropertiesWindow();
+      this.render();
+    }
+  }
+
+  resetSelectedVelocities() {
+    if (!this.selected || this.selected.type !== 'body') return;
+    const b = this.bodies.find(x => x.id === this.selected.id);
+    if (b) {
+      b.vx = 0; b.vy = 0; b.omega = 0;
+      this.updatePropertiesWindow();
+      this.render();
+    }
+  }
+
+  clearTrails() {
+    this.trails = [];
+    this.render();
+  }
+
+  updateStatus() {
+    document.getElementById('tb-time-readout').textContent = `Time: ${this.time.toFixed(2)} s`;
+    document.getElementById('tb-frame-readout').textContent = `F:${this.frame}`;
+  }
+
+  /* ==================== BUILT-IN SIMULATION PRESETS ==================== */
+  newWorld() {
+    this.stopSim();
+    this.bodies = [];
+    this.springs = [];
+    this.joints = [];
+    this.forces = [];
+    this.trails = [];
+    this.history = [];
+    this.prob8Ref = null;
+    this.selected = null;
+    this.time = 0;
+    this.frame = 0;
+    this.setGravity(9.8);
+    this.setAirDrag(0);
+    document.getElementById('window-title-text').textContent = 'Interactive Physics - [Simulation1.ip]';
+    this.captureInitialSnapshot();
+    this.updatePropertiesWindow();
+    this.updateMeasureWindow();
+    this.updateStatus();
+    this.render();
+  }
+
+  loadPreset(name) {
+    this.newWorld();
+
+    if (name === 'prob8_friction' || name === 'prob8_no_friction') {
+      const mu = name === 'prob8_friction' ? 0.400 : 0.0;
+      const slopeDeg = 60.0;
+      const slopeRad = slopeDeg * Math.PI / 180;
+      const ux = Math.cos(slopeRad), uy = Math.sin(slopeRad);
+      const nx = -Math.sin(slopeRad), ny = Math.cos(slopeRad);
+
+      // 60.0-degree inclined ramp anchored cleanly (length 5.2 m along slope)
+      const rampLen = 5.2;
+      const rampThick = 0.28;
+      const baseX = -1.2, baseY = 0.15;
+      const ramp = this.createBody({
+        name: '60° Inclined Plane',
+        shape: 'rect',
+        x: baseX + ux * (rampLen / 2) - nx * (rampThick / 2),
+        y: baseY + uy * (rampLen / 2) - ny * (rampThick / 2),
+        angle: slopeRad,
+        width: rampLen,
+        height: rampThick,
+        anchored: true,
+        mu_s: mu,
+        mu_k: mu,
+        restitution: 0.0,
+        color: '#C8C8C8'
+      });
+
+      // Rigid spring stop block anchored at bottom of ramp
+      const stop = this.createBody({
+        name: 'Spring Stop',
+        shape: 'rect',
+        x: baseX + ux * 0.12 + nx * 0.12,
+        y: baseY + uy * 0.12 + ny * 0.12,
+        angle: slopeRad,
+        width: 0.16,
+        height: 0.24,
+        anchored: true,
+        color: '#707070'
+      });
+
+      // Block of mass m = 0.200 kg resting against compressed spring
+      // Spring: k = 1400 N/m, restLength = 0.55 m, compressed by 0.100 m -> current length = 0.45 m
+      const blockW = 0.24, blockH = 0.18;
+      const springAnchorS = 0.20;
+      const compressedLen = 0.45; // 0.55 - 0.100 = 0.45 m
+      const blockCenterS = springAnchorS + compressedLen + blockW / 2;
+
+      const bx = baseX + ux * blockCenterS + nx * (blockH / 2 + 0.001);
+      const by = baseY + uy * blockCenterS + ny * (blockH / 2 + 0.001);
+
+      const block = this.createBody({
+        name: 'Block (200g)',
+        shape: 'rect',
+        x: bx, y: by,
+        angle: slopeRad,
+        width: blockW,
+        height: blockH,
+        mass: 0.200,
+        mu_s: mu,
+        mu_k: mu,
+        restitution: 0.0,
+        color: '#66A3FF'
+      });
+
+      this.createSpring({
+        name: 'Spring (1400 N/m)',
+        type: 'spring',
+        bodyA: stop.id,
+        localA: { x: 0.08, y: 0 },
+        bodyB: block.id,
+        localB: { x: -blockW / 2, y: 0 },
+        k: 1400,
+        c: 0.0,
+        restLength: 0.55
+      });
+
+      this.prob8Ref = { bodyId: block.id, x0: bx, y0: by };
+      this.ppm = 92;
+      this.camX = 0.25;
+      this.camY = 2.25;
+      this.setMeasureMode('dashboard');
+      this.selectEntity('body', block.id);
+      document.getElementById('window-title-text').textContent = `Interactive Physics - [Problem8_${mu > 0 ? 'Friction_0.4' : 'Frictionless'}.ip]`;
+    }
+
+    else if (name === 'pendulum_collision') {
+      const bob1 = this.createBody({ name: 'Pendulum Bob 1', shape: 'circle', x: -1.6, y: 2.6, radius: 0.22, mass: 1.5, restitution: 0.98, color: '#FFCC33' });
+      const bob2 = this.createBody({ name: 'Pendulum Bob 2', shape: 'circle', x: 0.0, y: 1.5, radius: 0.22, mass: 1.5, restitution: 0.98, color: '#66B2FF' });
+      this.createSpring({ name: 'Rod 1', type: 'rod', bodyA: null, localA: { x: -0.45, y: 3.5 }, bodyB: bob1.id, localB: { x: 0, y: 0 }, k: 22000, restLength: Math.hypot(-1.6 + 0.45, 2.6 - 3.5) });
+      this.createSpring({ name: 'Rod 2', type: 'rod', bodyA: null, localA: { x: 0.0, y: 3.5 }, bodyB: bob2.id, localB: { x: 0, y: 0 }, k: 22000, restLength: 2.0 });
+      this.camX = -0.3; this.camY = 2.2;
+      this.setMeasureMode('momentum');
+      this.selectEntity('body', bob1.id);
+      document.getElementById('window-title-text').textContent = 'Interactive Physics - [Pendulum_Collision.ip]';
+    }
+
+    else if (name === 'pulley_atwood') {
+      const m1 = this.createBody({ name: 'Mass A (3.0 kg)', shape: 'rect', x: -0.8, y: 1.8, width: 0.45, height: 0.45, mass: 3.0, color: '#FF8888' });
+      const m2 = this.createBody({ name: 'Mass B (2.0 kg)', shape: 'rect', x: 0.8, y: 2.4, width: 0.45, height: 0.45, mass: 2.0, color: '#88CCFF' });
+      this.createJoint({
+        name: 'Atwood Pulley',
+        type: 'pulley',
+        bodyA: m1.id, localA: { x: 0, y: 0.225 },
+        bodyB: m2.id, localB: { x: 0, y: 0.225 },
+        pulleyAnchor: { x: 0, y: 3.6 },
+        totalLength: 3.4
+      });
+      this.camX = 0; this.camY = 2.1;
+      this.setMeasureMode('acceleration');
+      this.selectEntity('body', m1.id);
+      document.getElementById('window-title-text').textContent = 'Interactive Physics - [Atwood_Pulley.ip]';
+    }
+
+    else if (name === 'projectile_drag') {
+      this.setAirDrag(0.08);
+      const ball = this.createBody({ name: 'Cannonball', shape: 'circle', x: -3.2, y: 0.35, vx: 7.5, vy: 9.0, radius: 0.2, mass: 1.0, restitution: 0.75, color: '#FF9933' });
+      this.ppm = 72; this.camX = 1.6; this.camY = 2.3;
+      this.setMeasureMode('energy');
+      this.selectEntity('body', ball.id);
+      document.getElementById('window-title-text').textContent = 'Interactive Physics - [Projectile_AirDrag.ip]';
+    }
+
+    else if (name === 'double_spring') {
+      const b1 = this.createBody({ name: 'Mass 1', shape: 'rect', x: -1.1, y: 0.3, width: 0.5, height: 0.5, mass: 1.5, mu_k: 0, mu_s: 0, color: '#66B2FF' });
+      const b2 = this.createBody({ name: 'Mass 2', shape: 'rect', x: 0.9, y: 0.3, width: 0.5, height: 0.5, mass: 1.5, mu_k: 0, mu_s: 0, color: '#99EE99' });
+      this.createSpring({ name: 'Left Spring', type: 'spring', bodyA: null, localA: { x: -2.8, y: 0.3 }, bodyB: b1.id, localB: { x: -0.25, y: 0 }, k: 80, restLength: 1.1 });
+      this.createSpring({ name: 'Coupling Spring', type: 'spring', bodyA: b1.id, localA: { x: 0.25, y: 0 }, bodyB: b2.id, localB: { x: -0.25, y: 0 }, k: 60, restLength: 1.5 });
+      this.createSpring({ name: 'Right Spring', type: 'spring', bodyA: b2.id, localA: { x: 0.25, y: 0 }, bodyB: null, localB: { x: 2.8, y: 0.3 }, k: 80, restLength: 1.6 });
+      this.camX = 0; this.camY = 1.4;
+      this.setMeasureMode('position');
+      this.selectEntity('body', b1.id);
+      document.getElementById('window-title-text').textContent = 'Interactive Physics - [Coupled_Oscillator.ip]';
+    }
+
+    else if (name === 'car_ramp') {
+      const rampRad = 22 * Math.PI / 180;
+      const ux = Math.cos(rampRad), uy = Math.sin(rampRad);
+      const nx = -Math.sin(rampRad), ny = Math.cos(rampRad);
+      this.createBody({ name: 'Ramp (22°)', shape: 'rect', x: -1.0, y: 1.1, angle: -rampRad, width: 4.5, height: 0.25, anchored: true, mu_s: 0.8, mu_k: 0.7, color: '#C8C8C8' });
+
+      // Car chassis + 2 rotating wheels joined by pin hinges
+      const cx = -2.2, cy = 1.95;
+      const chassis = this.createBody({ name: 'Car Chassis', shape: 'rect', x: cx, y: cy, angle: -rampRad, width: 0.9, height: 0.22, mass: 2.0, color: '#FF6666' });
+      const w1Pos = this.localToWorld(chassis, -0.3, -0.14);
+      const w2Pos = this.localToWorld(chassis, 0.3, -0.14);
+      const w1 = this.createBody({ name: 'Rear Wheel', shape: 'circle', x: w1Pos.x, y: w1Pos.y, radius: 0.16, mass: 0.4, mu_s: 0.9, mu_k: 0.8, color: '#444444' });
+      const w2 = this.createBody({ name: 'Front Wheel', shape: 'circle', x: w2Pos.x, y: w2Pos.y, radius: 0.16, mass: 0.4, mu_s: 0.9, mu_k: 0.8, color: '#444444' });
+
+      this.createJoint({ name: 'Rear Axle', type: 'pin', bodyA: chassis.id, localA: { x: -0.3, y: -0.14 }, bodyB: w1.id, localB: { x: 0, y: 0 } });
+      this.createJoint({ name: 'Front Axle', type: 'pin', bodyA: chassis.id, localA: { x: 0.3, y: -0.14 }, bodyB: w2.id, localB: { x: 0, y: 0 } });
+      this.camX = 0.2; this.camY = 1.4;
+      this.setMeasureMode('velocity');
+      this.selectEntity('body', chassis.id);
+      document.getElementById('window-title-text').textContent = 'Interactive Physics - [Rolling_Car_Ramp.ip]';
+    }
+
+    this.captureInitialSnapshot();
+    this.recordTelemetry();
+    this.updateMeasureWindow();
+    this.render();
+  }
+
+  /* ==================== WORKSPACE CANVAS RENDERING ==================== */
+  render() {
+    const ctx = this.ctx;
+    const W = this.canvas.width, H = this.canvas.height;
+    ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(0, 0, W, H);
+
+    this.drawGridAndAxes(ctx, W, H);
+
+    // Ground Plane at Y = 0
+    const groundY = this.worldToScreen(0, 0).y;
+    ctx.strokeStyle = '#222222';
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(0, groundY); ctx.lineTo(W, groundY); ctx.stroke();
+
+    ctx.strokeStyle = '#909090';
+    ctx.lineWidth = 1;
+    for (let x = 0; x < W; x += 14) {
+      ctx.beginPath(); ctx.moveTo(x, groundY); ctx.lineTo(x - 7, groundY + 7); ctx.stroke();
+    }
+
+    // Motion Trace Path
+    if (this.trails.length > 0) {
+      ctx.fillStyle = '#000080';
+      for (const t of this.trails) {
+        const p = this.worldToScreen(t.x, t.y);
+        ctx.fillRect(p.x - 1.5, p.y - 1.5, 3, 3);
+      }
+    }
+
+    // Bodies
+    for (const b of this.bodies) this.drawBody(ctx, b);
+
+    // Springs, Dampers, Rods, Ropes
+    for (const sp of this.springs) this.drawSpring(ctx, sp);
+
+    // Joints (Pins, Pulleys, Motors, Slots)
+    for (const j of this.joints) this.drawJoint(ctx, j);
+
+    // Applied Forces & Vector Overlays
+    for (const f of this.forces) this.drawAppliedForce(ctx, f);
+    if (this.showVectors) {
+      for (const b of this.bodies) {
+        if (!b.anchored) this.drawBodyVectors(ctx, b);
+      }
+    }
+
+    // Selection Resize & Rotation Handles
+    if (this.selected && this.selected.type === 'body' && !this.running) {
+      const sb = this.bodies.find(x => x.id === this.selected.id);
+      if (sb) this.drawSelectionHandles(ctx, sb);
+    }
+
+    // Creation Previews
+    if (this.creating) this.drawCreationPreview(ctx, this.creating);
+    if (this.polyPoints.length > 0) this.drawPolygonPreview(ctx);
+    if (this.pulleyStage.length > 0) this.drawPulleyPreview(ctx);
+
+    // Classic Top & Left Rulers
+    if (this.showRulers) this.drawRulers(ctx, W, H);
+  }
+
+  drawGridAndAxes(ctx, W, H) {
+    const tl = this.screenToWorld(0, 0);
+    const br = this.screenToWorld(W, H);
+    const step = this.ppm > 140 ? 0.5 : (this.ppm < 45 ? 2.0 : 1.0);
+
+    if (this.showGrid) {
+      ctx.strokeStyle = '#ECECEC';
+      ctx.lineWidth = 1;
+      for (let x = Math.floor(tl.x / step) * step; x <= br.x; x += step) {
+        const sx = this.worldToScreen(x, 0).x;
+        ctx.beginPath(); ctx.moveTo(sx, 0); ctx.lineTo(sx, H); ctx.stroke();
+      }
+      for (let y = Math.floor(br.y / step) * step; y <= tl.y; y += step) {
+        const sy = this.worldToScreen(0, y).y;
+        ctx.beginPath(); ctx.moveTo(0, sy); ctx.lineTo(W, sy); ctx.stroke();
+      }
+    }
+
+    if (this.showAxes) {
+      const o = this.worldToScreen(0, 0);
+      ctx.strokeStyle = '#B8B8B8';
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.moveTo(o.x, 0); ctx.lineTo(o.x, H);
+      ctx.moveTo(0, o.y); ctx.lineTo(W, o.y);
+      ctx.stroke();
+    }
+  }
+
+  drawRulers(ctx, W, H) {
+    const rs = 18;
+    ctx.fillStyle = '#D4D0C8';
+    ctx.fillRect(0, 0, W, rs);
+    ctx.fillRect(0, 0, rs, H);
+
+    ctx.strokeStyle = '#808080';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(0, rs); ctx.lineTo(W, rs);
+    ctx.moveTo(rs, 0); ctx.lineTo(rs, H);
+    ctx.stroke();
+
+    ctx.fillStyle = '#000';
+    ctx.font = '9px Tahoma, sans-serif';
+    const tl = this.screenToWorld(0, 0);
+    const br = this.screenToWorld(W, H);
+    const step = this.ppm > 130 ? 0.5 : (this.ppm < 45 ? 2.0 : 1.0);
+
+    for (let x = Math.floor(tl.x / step) * step; x <= br.x; x += step) {
+      const sx = this.worldToScreen(x, 0).x;
+      if (sx < rs) continue;
+      ctx.beginPath(); ctx.moveTo(sx, rs - 5); ctx.lineTo(sx, rs); ctx.stroke();
+      ctx.fillText(x.toFixed(1), sx + 2, 11);
+    }
+    for (let y = Math.floor(br.y / step) * step; y <= tl.y; y += step) {
+      const sy = this.worldToScreen(0, y).y;
+      if (sy < rs) continue;
+      ctx.beginPath(); ctx.moveTo(rs - 5, sy); ctx.lineTo(rs, sy); ctx.stroke();
+      ctx.fillText(y.toFixed(1), 1, sy - 2);
+    }
+
+    ctx.fillStyle = '#C0C0C0';
+    ctx.fillRect(0, 0, rs, rs);
+    ctx.fillStyle = '#000';
+    ctx.fillText('m', 4, 12);
+  }
+
+  drawBody(ctx, b) {
+    const isSel = this.selected && this.selected.type === 'body' && this.selected.id === b.id;
+    const c = this.worldToScreen(b.x, b.y);
+
+    ctx.save();
+    ctx.fillStyle = b.color;
+    ctx.strokeStyle = isSel ? '#000080' : '#000000';
+    ctx.lineWidth = isSel ? 2.0 : 1.3;
+
+    if (b.shape === 'circle') {
+      const rPx = b.radius * this.ppm;
+      ctx.beginPath();
+      ctx.arc(c.x, c.y, rPx, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+
+      // Orientation spoke
+      ctx.beginPath();
+      ctx.moveTo(c.x, c.y);
+      ctx.lineTo(c.x + Math.cos(-b.angle) * rPx, c.y + Math.sin(-b.angle) * rPx);
+      ctx.stroke();
+    } else {
+      const verts = this.getBodyVertices(b).map(v => this.worldToScreen(v.x, v.y));
+      ctx.beginPath();
+      verts.forEach((p, idx) => idx === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+    }
+
+    // Center of Mass Marker (Classic black/white quadrant circle)
+    if (this.showCOM && !b.anchored) {
+      ctx.fillStyle = '#FFF';
+      ctx.beginPath(); ctx.arc(c.x, c.y, 4, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#000';
+      ctx.beginPath(); ctx.moveTo(c.x, c.y); ctx.arc(c.x, c.y, 4, 0, Math.PI / 2); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(c.x, c.y); ctx.arc(c.x, c.y, 4, Math.PI, Math.PI * 1.5); ctx.fill();
+      ctx.strokeStyle = '#000'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.arc(c.x, c.y, 4, 0, Math.PI * 2); ctx.stroke();
+    }
+
+    // Fixed Anchor Pin Icon
+    if (b.anchored) {
+      ctx.fillStyle = '#CC0000';
+      ctx.strokeStyle = '#000';
+      ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.arc(c.x, c.y, 4.5, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    }
+
+    ctx.restore();
+  }
+
+  drawSelectionHandles(ctx, b) {
+    ctx.save();
+    ctx.fillStyle = '#000000';
+    ctx.strokeStyle = '#FFFFFF';
+    ctx.lineWidth = 1;
+
+    if (b.shape === 'circle') {
+      const radPt = this.worldToScreen(...Object.values(this.localToWorld(b, 0, b.radius)));
+      const rotPt = this.worldToScreen(...Object.values(this.localToWorld(b, b.radius + 0.28, 0)));
+      const c = this.worldToScreen(b.x, b.y);
+
+      ctx.strokeStyle = '#000080';
+      ctx.beginPath(); ctx.moveTo(c.x, c.y); ctx.lineTo(rotPt.x, rotPt.y); ctx.stroke();
+
+      ctx.fillRect(radPt.x - 4, radPt.y - 4, 8, 8);
+      ctx.beginPath(); ctx.arc(rotPt.x, rotPt.y, 5, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      return;
+    }
+
+    const hw = b.width / 2, hh = b.height / 2;
+    const corners = [
+      this.localToWorld(b, -hw, -hh),
+      this.localToWorld(b, hw, -hh),
+      this.localToWorld(b, hw, hh),
+      this.localToWorld(b, -hw, hh)
+    ].map(p => this.worldToScreen(p.x, p.y));
+
+    for (const cp of corners) {
+      ctx.fillRect(cp.x - 4, cp.y - 4, 8, 8);
+      ctx.strokeRect(cp.x - 4, cp.y - 4, 8, 8);
+    }
+
+    const topMid = this.worldToScreen(...Object.values(this.localToWorld(b, 0, hh)));
+    const rotPt = this.worldToScreen(...Object.values(this.localToWorld(b, 0, hh + 0.28)));
+    ctx.strokeStyle = '#000080';
+    ctx.beginPath(); ctx.moveTo(topMid.x, topMid.y); ctx.lineTo(rotPt.x, rotPt.y); ctx.stroke();
+    ctx.beginPath(); ctx.arc(rotPt.x, rotPt.y, 5, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    ctx.restore();
+  }
+
+  drawSpring(ctx, sp) {
+    const bA = this.bodies.find(b => b.id === sp.bodyA);
+    const bB = this.bodies.find(b => b.id === sp.bodyB);
+    const wA = this.localToWorld(bA, sp.localA.x, sp.localA.y);
+    const wB = this.localToWorld(bB, sp.localB.x, sp.localB.y);
+    const pA = this.worldToScreen(wA.x, wA.y);
+    const pB = this.worldToScreen(wB.x, wB.y);
+
+    const isSel = this.selected && this.selected.type === 'spring' && this.selected.id === sp.id;
+    const dx = pB.x - pA.x, dy = pB.y - pA.y;
+    const len = Math.hypot(dx, dy);
+    if (len < 2) return;
+    const ux = dx / len, uy = dy / len;
+    const nx = -uy, ny = ux;
+
+    ctx.save();
+    ctx.strokeStyle = isSel ? '#CC0000' : (sp.type === 'rope' ? '#8B4513' : (sp.type === 'rod' ? '#222' : '#000080'));
+    ctx.lineWidth = isSel ? 2.6 : 1.8;
+
+    if (sp.type === 'rod' || sp.type === 'rope') {
+      if (sp.type === 'rope') ctx.setLineDash([5, 3]);
+      ctx.beginPath(); ctx.moveTo(pA.x, pA.y); ctx.lineTo(pB.x, pB.y); ctx.stroke();
+    } else if (sp.type === 'damper') {
+      const midX = (pA.x + pB.x) / 2, midY = (pA.y + pB.y) / 2;
+      ctx.beginPath(); ctx.moveTo(pA.x, pA.y); ctx.lineTo(midX, midY); ctx.stroke();
+      ctx.lineWidth = 4;
+      ctx.beginPath(); ctx.moveTo(midX - ux * 10, midY - uy * 10); ctx.lineTo(midX + ux * 10, midY + uy * 10); ctx.stroke();
+      ctx.lineWidth = 1.8;
+      ctx.beginPath(); ctx.moveTo(midX, midY); ctx.lineTo(pB.x, pB.y); ctx.stroke();
+    } else {
+      const coils = 12, amp = 7;
+      const lead = Math.min(12, len * 0.12);
+      ctx.beginPath();
+      ctx.moveTo(pA.x, pA.y);
+      ctx.lineTo(pA.x + ux * lead, pA.y + uy * lead);
+      const span = len - 2 * lead;
+      for (let i = 1; i < coils; i++) {
+        const t = i / coils;
+        const side = i % 2 === 0 ? amp : -amp;
+        ctx.lineTo(pA.x + ux * (lead + t * span) + nx * side, pA.y + uy * (lead + t * span) + ny * side);
+      }
+      ctx.lineTo(pB.x - ux * lead, pB.y - uy * lead);
+      ctx.lineTo(pB.x, pB.y);
+      ctx.stroke();
+    }
+
+    ctx.fillStyle = '#000';
+    ctx.beginPath(); ctx.arc(pA.x, pA.y, 3.5, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(pB.x, pB.y, 3.5, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+  }
+
+  drawJoint(ctx, j) {
+    const isSel = this.selected && this.selected.type === 'joint' && this.selected.id === j.id;
+    const bA = this.bodies.find(b => b.id === j.bodyA);
+    const bB = this.bodies.find(b => b.id === j.bodyB);
+
+    ctx.save();
+    if (j.type === 'pin' || j.type === 'motor') {
+      const wA = this.localToWorld(bA, j.localA.x, j.localA.y);
+      const p = this.worldToScreen(wA.x, wA.y);
+      ctx.fillStyle = j.type === 'motor' ? '#FFCC00' : '#FFFFFF';
+      ctx.strokeStyle = isSel ? '#CC0000' : '#000000';
+      ctx.lineWidth = 1.8;
+      ctx.beginPath(); ctx.arc(p.x, p.y, j.type === 'motor' ? 8 : 5, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#000';
+      ctx.beginPath(); ctx.arc(p.x, p.y, 2, 0, Math.PI * 2); ctx.fill();
+    } else if (j.type === 'pulley') {
+      const wA = this.localToWorld(bA, j.localA.x, j.localA.y);
+      const wB = this.localToWorld(bB, j.localB.x, j.localB.y);
+      const pA = this.worldToScreen(wA.x, wA.y);
+      const pB = this.worldToScreen(wB.x, wB.y);
+      const pW = this.worldToScreen(j.pulleyAnchor.x, j.pulleyAnchor.y);
+
+      ctx.strokeStyle = '#8B4513';
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(pA.x, pA.y); ctx.lineTo(pW.x, pW.y); ctx.lineTo(pB.x, pB.y); ctx.stroke();
+
+      ctx.fillStyle = '#D0D0D0';
+      ctx.strokeStyle = isSel ? '#CC0000' : '#000';
+      ctx.beginPath(); ctx.arc(pW.x, pW.y, 10, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#000';
+      ctx.beginPath(); ctx.arc(pW.x, pW.y, 2.5, 0, Math.PI * 2); ctx.fill();
+    } else if (j.type === 'slot') {
+      const p1 = this.worldToScreen(j.slotOrigin.x - Math.cos(j.slotAngle) * 3, j.slotOrigin.y - Math.sin(j.slotAngle) * 3);
+      const p2 = this.worldToScreen(j.slotOrigin.x + Math.cos(j.slotAngle) * 3, j.slotOrigin.y + Math.sin(j.slotAngle) * 3);
+      ctx.strokeStyle = isSel ? '#CC0000' : '#555';
+      ctx.lineWidth = 4;
+      ctx.beginPath(); ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.stroke();
+      ctx.strokeStyle = '#FFF';
+      ctx.lineWidth = 1.2;
+      ctx.beginPath(); ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  drawAppliedForce(ctx, f) {
+    const b = this.bodies.find(x => x.id === f.bodyId);
+    if (!b) return;
+    const wA = this.localToWorld(b, f.localPos.x, f.localPos.y);
+    const pA = this.worldToScreen(wA.x, wA.y);
+    const rad = f.angleDeg * Math.PI / 180;
+    const pxLen = Math.min(130, Math.max(32, f.magnitude * 2.2)) * this.vecScale;
+    const pB = { x: pA.x + Math.cos(-rad) * pxLen, y: pA.y + Math.sin(-rad) * pxLen };
+    const isSel = this.selected && this.selected.type === 'force' && this.selected.id === f.id;
+    this.drawArrow(ctx, pA.x, pA.y, pB.x, pB.y, isSel ? '#FF00FF' : '#CC0000', `${f.magnitude}N`);
+  }
+
+  drawBodyVectors(ctx, b) {
+    const c = this.worldToScreen(b.x, b.y);
+    const s = this.vecScale;
+
+    if (this.vecVel) {
+      const vMag = Math.hypot(b.vx, b.vy);
+      if (vMag > 0.05) this.drawArrow(ctx, c.x, c.y, c.x + b.vx * 16 * s, c.y - b.vy * 16 * s, '#0055FF', `v=${vMag.toFixed(1)}`);
+    }
+    if (this.vecAcc) {
+      const aMag = Math.hypot(b.ax, b.ay);
+      if (aMag > 0.05) this.drawArrow(ctx, c.x, c.y, c.x + b.ax * 6 * s, c.y - b.ay * 6 * s, '#8800AA', `a=${aMag.toFixed(1)}`);
+    }
+    if (this.vecForce) {
+      const fMag = Math.hypot(b.netFx, b.netFy);
+      if (fMag > 0.1) {
+        const sc = Math.min(8, 55 / Math.max(5, fMag)) * s;
+        this.drawArrow(ctx, c.x, c.y, c.x + b.netFx * sc, c.y - b.netFy * sc, '#CC0000', `F=${fMag.toFixed(1)}N`);
+      }
+    }
+    if (this.vecGrav && this.gravity > 0) {
+      const fg = b.mass * this.gravity;
+      this.drawArrow(ctx, c.x, c.y, c.x, c.y + Math.min(65, fg * 5) * s, '#006600', 'mg');
+    }
+    if (this.vecNorm) {
+      const nMag = Math.hypot(b.normalFx, b.normalFy);
+      if (nMag > 0.05) {
+        const sc = Math.min(20, 45 / Math.max(1, nMag)) * s;
+        this.drawArrow(ctx, c.x, c.y, c.x + b.normalFx * sc, c.y - b.normalFy * sc, '#008888', `N=${nMag.toFixed(2)}N`);
+      }
+    }
+    if (this.vecFric) {
+      const fkMag = Math.hypot(b.fricFx, b.fricFy);
+      if (fkMag > 0.05) {
+        const sc = Math.min(25, 45 / Math.max(1, fkMag)) * s;
+        this.drawArrow(ctx, c.x, c.y, c.x + b.fricFx * sc, c.y - b.fricFy * sc, '#DD5500', `fk=${fkMag.toFixed(2)}N`);
+      }
+    }
+  }
+
+  drawArrow(ctx, x1, y1, x2, y2, color, label) {
+    const dx = x2 - x1, dy = y2 - y1;
+    const len = Math.hypot(dx, dy);
+    if (len < 4) return;
+    const ang = Math.atan2(dy, dx);
+
+    ctx.save();
+    ctx.strokeStyle = color;
+    ctx.fillStyle = color;
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+
+    const head = 8;
+    ctx.beginPath();
+    ctx.moveTo(x2, y2);
+    ctx.lineTo(x2 - head * Math.cos(ang - 0.38), y2 - head * Math.sin(ang - 0.38));
+    ctx.lineTo(x2 - head * Math.cos(ang + 0.38), y2 - head * Math.sin(ang + 0.38));
+    ctx.closePath();
+    ctx.fill();
+
+    if (label) {
+      ctx.font = 'bold 10px Tahoma';
+      ctx.fillText(label, x2 + 4, y2 - 3);
+    }
+    ctx.restore();
+  }
+
+  drawCreationPreview(ctx, c) {
+    ctx.save();
+    ctx.strokeStyle = '#000080';
+    ctx.setLineDash([4, 3]);
+    ctx.lineWidth = 1.5;
+    if (c.tool === 'rect' || c.tool === 'circle') {
+      const p1 = this.worldToScreen(c.x1, c.y1);
+      const p2 = this.worldToScreen(c.x2, c.y2);
+      if (c.tool === 'rect') {
+        ctx.strokeRect(Math.min(p1.x, p2.x), Math.min(p1.y, p2.y), Math.abs(p2.x - p1.x), Math.abs(p2.y - p1.y));
+      } else {
+        const cx = (p1.x + p2.x) / 2, cy = (p1.y + p2.y) / 2;
+        const r = Math.hypot(p2.x - p1.x, p2.y - p1.y) / 2;
+        ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.stroke();
+      }
+    } else {
+      const p1 = this.worldToScreen(c.wx1, c.wy1);
+      const p2 = this.worldToScreen(c.wx2, c.wy2);
+      ctx.beginPath(); ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  drawPolygonPreview(ctx) {
+    ctx.save();
+    ctx.strokeStyle = '#000080';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    this.polyPoints.forEach((pt, idx) => {
+      const sp = this.worldToScreen(pt.x, pt.y);
+      if (idx === 0) ctx.moveTo(sp.x, sp.y);
+      else ctx.lineTo(sp.x, sp.y);
+      ctx.fillRect(sp.x - 3, sp.y - 3, 6, 6);
+    });
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  drawPulleyPreview(ctx) {
+    ctx.save();
+    ctx.fillStyle = '#CC0000';
+    for (const pt of this.pulleyStage) {
+      const sp = this.worldToScreen(pt.x, pt.y);
+      ctx.beginPath(); ctx.arc(sp.x, sp.y, 5, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.restore();
+  }
+}
+
+window.onload = () => {
+  window.app = new InteractivePhysicsApp();
+};
+</script>
+</body>
+</html>
