@@ -1,0 +1,3969 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Interactive Physics - [Untitled1.ip]</title>
+<style>
+  :root {
+    --win-bg: #d4d0c8;
+    --win-light: #ffffff;
+    --win-shadow: #808080;
+    --win-dark: #404040;
+    --win-blue: #0a246a;
+    --win-blue-grad: #a6caf0;
+    --text-color: #000000;
+  }
+
+  * {
+    box-sizing: border-box;
+    user-select: none;
+    -webkit-user-select: none;
+    font-family: "Tahoma", "MS Sans Serif", Arial, sans-serif;
+    font-size: 11px;
+  }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background-color: var(--win-bg);
+    display: flex;
+    flex-direction: column;
+    touch-action: manipulation;
+  }
+
+  .bevel-out {
+    border-top: 1px solid var(--win-light);
+    border-left: 1px solid var(--win-light);
+    border-right: 1px solid var(--win-dark);
+    border-bottom: 1px solid var(--win-dark);
+    box-shadow: inset -1px -1px 0 var(--win-shadow);
+  }
+
+  .bevel-in {
+    border-top: 1px solid var(--win-shadow);
+    border-left: 1px solid var(--win-shadow);
+    border-right: 1px solid var(--win-light);
+    border-bottom: 1px solid var(--win-light);
+    box-shadow: inset 1px 1px 0 var(--win-dark);
+  }
+
+  /* Title Bar */
+  #title-bar {
+    background: linear-gradient(90deg, var(--win-blue), var(--win-blue-grad));
+    color: white;
+    font-weight: bold;
+    padding: 3px 6px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    min-height: 24px;
+    flex-shrink: 0;
+  }
+
+  #title-bar .title-left {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .win-btn {
+    width: 18px;
+    height: 16px;
+    background: var(--win-bg);
+    color: black;
+    border-top: 1px solid var(--win-light);
+    border-left: 1px solid var(--win-light);
+    border-right: 1px solid var(--win-dark);
+    border-bottom: 1px solid var(--win-dark);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: bold;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  .win-btn:active {
+    border-top: 1px solid var(--win-dark);
+    border-left: 1px solid var(--win-dark);
+    border-right: 1px solid var(--win-light);
+    border-bottom: 1px solid var(--win-light);
+  }
+
+  /* Menu Bar */
+  #menu-bar {
+    background: var(--win-bg);
+    display: flex;
+    flex-wrap: wrap;
+    padding: 2px 4px;
+    border-bottom: 1px solid var(--win-shadow);
+    position: relative;
+    z-index: 1200;
+    flex-shrink: 0;
+  }
+
+  .menu-item {
+    padding: 3px 7px;
+    cursor: pointer;
+    position: relative;
+  }
+
+  .menu-item:hover, .menu-item.active {
+    background: var(--win-blue);
+    color: white;
+  }
+
+  .dropdown {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background: var(--win-bg);
+    color: var(--text-color);
+    min-width: 195px;
+    border-top: 1px solid var(--win-light);
+    border-left: 1px solid var(--win-light);
+    border-right: 1px solid var(--win-dark);
+    border-bottom: 1px solid var(--win-dark);
+    box-shadow: 2px 2px 5px rgba(0,0,0,0.35);
+    padding: 2px;
+    z-index: 1300;
+  }
+
+  .menu-item.active > .dropdown {
+    display: block;
+  }
+
+  .dd-item {
+    padding: 5px 14px 5px 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+
+  .dd-item:hover {
+    background: var(--win-blue);
+    color: white;
+  }
+
+  .dd-sep {
+    height: 1px;
+    background: var(--win-shadow);
+    border-bottom: 1px solid var(--win-light);
+    margin: 3px 2px;
+  }
+
+  .dd-sub {
+    position: relative;
+  }
+
+  .dd-sub-menu {
+    display: none;
+    position: absolute;
+    left: 100%;
+    top: -2px;
+    background: var(--win-bg);
+    color: black;
+    min-width: 165px;
+    border-top: 1px solid var(--win-light);
+    border-left: 1px solid var(--win-light);
+    border-right: 1px solid var(--win-dark);
+    border-bottom: 1px solid var(--win-dark);
+    box-shadow: 2px 2px 5px rgba(0,0,0,0.3);
+    padding: 2px;
+    z-index: 1400;
+  }
+
+  .dd-sub:hover > .dd-sub-menu,
+  .dd-sub.open > .dd-sub-menu {
+    display: block;
+  }
+
+  @media (max-width: 700px) {
+    .dd-sub-menu {
+      position: static;
+      box-shadow: none;
+      border: none;
+      background: #e4e1db;
+      padding-left: 12px;
+    }
+  }
+
+  /* Toolbar */
+  #toolbar {
+    background: var(--win-bg);
+    padding: 3px 6px;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    border-bottom: 1px solid var(--win-shadow);
+    flex-wrap: wrap;
+    flex-shrink: 0;
+  }
+
+  .tb-btn {
+    width: 26px;
+    height: 24px;
+    background: var(--win-bg);
+    border: 1px solid transparent;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    border-radius: 1px;
+    font-size: 12px;
+  }
+
+  .tb-btn:hover {
+    border-top: 1px solid var(--win-light);
+    border-left: 1px solid var(--win-light);
+    border-right: 1px solid var(--win-shadow);
+    border-bottom: 1px solid var(--win-shadow);
+  }
+
+  .tb-btn:active {
+    border-top: 1px solid var(--win-shadow);
+    border-left: 1px solid var(--win-shadow);
+    border-right: 1px solid var(--win-light);
+    border-bottom: 1px solid var(--win-light);
+    background: #e4e1db;
+  }
+
+  .tb-sep {
+    width: 2px;
+    height: 18px;
+    border-left: 1px solid var(--win-shadow);
+    border-right: 1px solid var(--win-light);
+    margin: 0 2px;
+  }
+
+  .sim-btn {
+    padding: 2px 8px;
+    height: 24px;
+    background: var(--win-bg);
+    border-top: 1px solid var(--win-light);
+    border-left: 1px solid var(--win-light);
+    border-right: 1px solid var(--win-dark);
+    border-bottom: 1px solid var(--win-dark);
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+    font-weight: bold;
+    white-space: nowrap;
+  }
+
+  .sim-btn:active, .sim-btn.running {
+    border-top: 1px solid var(--win-dark);
+    border-left: 1px solid var(--win-dark);
+    border-right: 1px solid var(--win-light);
+    border-bottom: 1px solid var(--win-light);
+    background: #c8c4bc;
+  }
+
+  /* Main Container */
+  #main-container {
+    display: flex;
+    flex: 1;
+    width: 100%;
+    min-height: 0;
+    overflow: hidden;
+    position: relative;
+  }
+
+  /* Left Tool Palette */
+  #tool-palette {
+    width: 60px;
+    background: var(--win-bg);
+    border-right: 1px solid var(--win-shadow);
+    padding: 4px 3px;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 2px;
+    align-content: start;
+    overflow-y: auto;
+    flex-shrink: 0;
+    z-index: 15;
+  }
+
+  .tool-icon {
+    width: 25px;
+    height: 25px;
+    background: var(--win-bg);
+    border: 1px solid transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+  }
+
+  .tool-icon:hover {
+    border-top: 1px solid var(--win-light);
+    border-left: 1px solid var(--win-light);
+    border-right: 1px solid var(--win-shadow);
+    border-bottom: 1px solid var(--win-shadow);
+  }
+
+  .tool-icon.active {
+    border-top: 1px solid var(--win-dark);
+    border-left: 1px solid var(--win-dark);
+    border-right: 1px solid var(--win-light);
+    border-bottom: 1px solid var(--win-light);
+    background: #ece9d8;
+  }
+
+  .palette-sep {
+    grid-column: span 2;
+    height: 2px;
+    border-top: 1px solid var(--win-shadow);
+    border-bottom: 1px solid var(--win-light);
+    margin: 2px 0;
+  }
+
+  /* Workspace */
+  #workspace-wrapper {
+    flex: 1;
+    min-width: 0;
+    min-height: 0;
+    position: relative;
+    background: #ffffff;
+    overflow: hidden;
+  }
+
+  #sim-canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    touch-action: none;
+    cursor: default;
+  }
+
+  /* Floating Windows */
+  .floating-win {
+    position: absolute;
+    background: var(--win-bg);
+    border-top: 2px solid var(--win-light);
+    border-left: 2px solid var(--win-light);
+    border-right: 2px solid var(--win-dark);
+    border-bottom: 2px solid var(--win-dark);
+    box-shadow: 2px 2px 6px rgba(0,0,0,0.35);
+    z-index: 120;
+    max-width: calc(100% - 16px);
+    max-height: calc(100% - 16px);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .fw-header {
+    background: linear-gradient(90deg, var(--win-blue), var(--win-blue-grad));
+    color: white;
+    font-weight: bold;
+    padding: 2px 6px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: move;
+    touch-action: none;
+    min-height: 20px;
+    flex-shrink: 0;
+  }
+
+  .fw-body {
+    padding: 8px;
+    overflow-y: auto;
+  }
+
+  .prop-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+    gap: 6px;
+  }
+
+  .prop-row label {
+    white-space: nowrap;
+  }
+
+  .prop-input {
+    width: 125px;
+    max-width: 55vw;
+    background: white;
+    border-top: 1px solid var(--win-shadow);
+    border-left: 1px solid var(--win-shadow);
+    border-right: 1px solid var(--win-light);
+    border-bottom: 1px solid var(--win-light);
+    padding: 2px 4px;
+    font-family: "Courier New", monospace;
+    font-size: 11px;
+    user-select: text;
+    -webkit-user-select: text;
+  }
+
+  .win-action-btn {
+    padding: 3px 10px;
+    background: var(--win-bg);
+    border-top: 1px solid var(--win-light);
+    border-left: 1px solid var(--win-light);
+    border-right: 1px solid var(--win-dark);
+    border-bottom: 1px solid var(--win-dark);
+    cursor: pointer;
+  }
+
+  .win-action-btn:active {
+    border-top: 1px solid var(--win-dark);
+    border-left: 1px solid var(--win-dark);
+    border-right: 1px solid var(--win-light);
+    border-bottom: 1px solid var(--win-light);
+  }
+
+  /* On-Canvas Controls & Meters */
+  .canvas-widget {
+    position: absolute;
+    background: var(--win-bg);
+    border-top: 1px solid var(--win-light);
+    border-left: 1px solid var(--win-light);
+    border-right: 1px solid var(--win-dark);
+    border-bottom: 1px solid var(--win-dark);
+    box-shadow: 1px 1px 3px rgba(0,0,0,0.25);
+    z-index: 60;
+    max-width: calc(100% - 12px);
+  }
+
+  .canvas-widget.selected {
+    outline: 1px dashed #000080;
+  }
+
+  .cw-title {
+    background: #808080;
+    color: white;
+    padding: 2px 5px;
+    font-size: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: move;
+    touch-action: none;
+    gap: 6px;
+  }
+
+  .canvas-widget.selected .cw-title {
+    background: var(--win-blue);
+  }
+
+  /* Context Menu */
+  #context-menu {
+    display: none;
+    position: fixed;
+    background: var(--win-bg);
+    border-top: 1px solid var(--win-light);
+    border-left: 1px solid var(--win-light);
+    border-right: 1px solid var(--win-dark);
+    border-bottom: 1px solid var(--win-dark);
+    box-shadow: 2px 2px 6px rgba(0,0,0,0.4);
+    min-width: 175px;
+    padding: 2px;
+    z-index: 3000;
+  }
+
+  /* Status Bar */
+  #status-bar {
+    min-height: 22px;
+    background: var(--win-bg);
+    border-top: 1px solid var(--win-light);
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    padding: 2px 4px;
+    gap: 4px;
+    flex-shrink: 0;
+  }
+
+  .status-cell {
+    padding: 1px 6px;
+    min-height: 17px;
+    display: inline-flex;
+    align-items: center;
+    border-top: 1px solid var(--win-shadow);
+    border-left: 1px solid var(--win-shadow);
+    border-right: 1px solid var(--win-light);
+    border-bottom: 1px solid var(--win-light);
+    background: var(--win-bg);
+    white-space: nowrap;
+  }
+
+  #status-msg {
+    flex: 1 1 180px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Modal Dialogs */
+  #modal-backdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.2);
+    z-index: 2500;
+    align-items: center;
+    justify-content: center;
+    padding: 10px;
+  }
+
+  .modal-box {
+    background: var(--win-bg);
+    border-top: 2px solid var(--win-light);
+    border-left: 2px solid var(--win-light);
+    border-right: 2px solid var(--win-dark);
+    border-bottom: 2px solid var(--win-dark);
+    min-width: 280px;
+    max-width: 96vw;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 4px 4px 10px rgba(0,0,0,0.4);
+  }
+
+  .modal-body-scroll {
+    padding: 10px;
+    overflow-y: auto;
+  }
+
+  .w-theta-layout {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  svg.icon {
+    width: 15px;
+    height: 15px;
+    stroke: #000;
+    fill: none;
+    stroke-width: 1.5;
+  }
+</style>
+</head>
+<body>
+
+<!-- TITLE BAR -->
+<div id="title-bar">
+  <div class="title-left">
+    <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true">
+      <rect width="16" height="16" fill="#008080"/>
+      <circle cx="8" cy="8" r="5" fill="#ffff00" stroke="#000"/>
+    </svg>
+    <span id="window-title">Interactive Physics - [Untitled1.ip]</span>
+  </div>
+  <div style="display:flex; gap:2px;">
+    <div class="win-btn" title="Minimize" onclick="setStatus('Window minimized in workspace.')">_</div>
+    <div class="win-btn" title="Fullscreen" onclick="toggleFullScreen()">□</div>
+    <div class="win-btn" title="Reset Session" onclick="resetSessionPrompt()">×</div>
+  </div>
+</div>
+
+<!-- MENU BAR -->
+<div id="menu-bar">
+  <!-- FILE -->
+  <div class="menu-item" data-menu="file">File
+    <div class="dropdown">
+      <div class="dd-item" onclick="cmdNew()"><span>New</span><span>Ctrl+N</span></div>
+      <div class="dd-item" onclick="cmdOpen()"><span>Open...</span><span>Ctrl+O</span></div>
+      <div class="dd-item" onclick="loadWorkExperimentPreset()"><span><b>Load Work Experiment (14 Steps)</b></span><span>F2</span></div>
+      <div class="dd-item" onclick="cmdNew()"><span>Close</span></div>
+      <div class="dd-sep"></div>
+      <div class="dd-item" onclick="cmdSave()"><span>Save</span><span>Ctrl+S</span></div>
+      <div class="dd-item" onclick="cmdSaveAs()"><span>Save As...</span></div>
+      <div class="dd-item" onclick="cmdRevert()"><span>Revert</span></div>
+      <div class="dd-sep"></div>
+      <div class="dd-item" onclick="cmdExportCSV()"><span>Export Data (.csv)...</span></div>
+      <div class="dd-item" onclick="window.print()"><span>Print...</span><span>Ctrl+P</span></div>
+      <div class="dd-sep"></div>
+      <div class="dd-item" onclick="resetSessionPrompt()"><span>Exit / Reset</span><span>Alt+F4</span></div>
+    </div>
+  </div>
+
+  <!-- EDIT -->
+  <div class="menu-item" data-menu="edit">Edit
+    <div class="dropdown">
+      <div class="dd-item" onclick="cmdUndo()"><span>Undo</span><span>Ctrl+Z</span></div>
+      <div class="dd-item" onclick="cmdRedo()"><span>Redo</span><span>Ctrl+Y</span></div>
+      <div class="dd-sep"></div>
+      <div class="dd-item" onclick="cmdCut()"><span>Cut</span><span>Ctrl+X</span></div>
+      <div class="dd-item" onclick="cmdCopy()"><span>Copy</span><span>Ctrl+C</span></div>
+      <div class="dd-item" onclick="cmdPaste()"><span>Paste</span><span>Ctrl+V</span></div>
+      <div class="dd-item" onclick="cmdDuplicate()"><span>Duplicate</span><span>Ctrl+D</span></div>
+      <div class="dd-item" onclick="cmdDelete()"><span>Delete / Clear</span><span>Del</span></div>
+      <div class="dd-sep"></div>
+      <div class="dd-item" onclick="cmdSelectAll()"><span>Select All</span><span>Ctrl+A</span></div>
+      <div class="dd-item" onclick="setTool('rotate')"><span>Rotate</span></div>
+      <div class="dd-item" onclick="setTool('reshape')"><span>Reshape</span></div>
+      <div class="dd-sep"></div>
+      <div class="dd-item" onclick="openWorldModal('accuracy')"><span>Preferences...</span></div>
+    </div>
+  </div>
+
+  <!-- WORLD -->
+  <div class="menu-item" data-menu="world">World
+    <div class="dropdown">
+      <div class="dd-item" onclick="openWorldModal('gravity')"><span>Gravity...</span></div>
+      <div class="dd-item" onclick="openWorldModal('air')"><span>Air Resistance...</span></div>
+      <div class="dd-item" onclick="openWorldModal('electro')"><span>Electrostatics...</span></div>
+      <div class="dd-item" onclick="openWorldModal('forcefield')"><span>Force Field...</span></div>
+      <div class="dd-sep"></div>
+      <div class="dd-item" onclick="openWorldModal('pause')"><span>Pause Control...</span></div>
+      <div class="dd-item" onclick="openWorldModal('accuracy')"><span>Accuracy / Simulation Settings...</span></div>
+      <div class="dd-item" onclick="toggleCollisions()"><span>Collisions</span><span id="chk-collisions">✓</span></div>
+    </div>
+  </div>
+
+  <!-- VIEW -->
+  <div class="menu-item" data-menu="view">View
+    <div class="dropdown">
+      <div class="dd-item" onclick="zoomCanvas(1.25)"><span>Zoom In</span><span>Ctrl++</span></div>
+      <div class="dd-item" onclick="zoomCanvas(0.8)"><span>Zoom Out</span><span>Ctrl+-</span></div>
+      <div class="dd-item" onclick="zoomToFit()"><span>Zoom to Fit</span></div>
+      <div class="dd-sep"></div>
+      <div class="dd-item" onclick="toggleViewFlag('grid')"><span>Grid</span><span id="chk-grid">✓</span></div>
+      <div class="dd-item" onclick="toggleViewFlag('snap')"><span>Snap to Grid</span><span id="chk-snap"></span></div>
+      <div class="dd-item" onclick="toggleViewFlag('axes')"><span>Axes</span><span id="chk-axes">✓</span></div>
+      <div class="dd-item" onclick="toggleViewFlag('rulers')"><span>Rulers</span><span id="chk-rulers">✓</span></div>
+      <div class="dd-item" onclick="toggleViewFlag('tracking')"><span>Tracking Trails</span><span id="chk-tracking">✓</span></div>
+      <div class="dd-item" onclick="clearTrails()"><span>Clear Trails</span></div>
+      <div class="dd-item" onclick="openWorldModal('units')"><span>Numbers and Units...</span></div>
+      <div class="dd-sep"></div>
+      <div class="dd-item" onclick="togglePalette()"><span>Toolbars & Palette</span><span id="chk-palette">✓</span></div>
+    </div>
+  </div>
+
+  <!-- OBJECT -->
+  <div class="menu-item" data-menu="object">Object
+    <div class="dropdown">
+      <div class="dd-item" onclick="openFloatingWin('win-properties')"><span>Properties</span><span>Ctrl+I</span></div>
+      <div class="dd-item" onclick="openFloatingWin('win-appearance')"><span>Appearance</span></div>
+      <div class="dd-item" onclick="openFloatingWin('win-geometry')"><span>Geometry</span></div>
+      <div class="dd-sep"></div>
+      <div class="dd-item" onclick="setTool('rotate')"><span>Rotate</span></div>
+      <div class="dd-item" onclick="cmdAnchorSelected()"><span>Anchor / Unanchor</span></div>
+      <div class="dd-item" onclick="cmdJoinSelected()"><span>Join</span></div>
+      <div class="dd-item" onclick="cmdSplitSelected()"><span>Split</span></div>
+      <div class="dd-sep"></div>
+      <div class="dd-item" onclick="cmdDuplicate()"><span>Duplicate</span></div>
+      <div class="dd-item" onclick="cmdBringToFront()"><span>Bring to Front</span></div>
+      <div class="dd-item" onclick="cmdSendToBack()"><span>Send to Back</span></div>
+    </div>
+  </div>
+
+  <!-- DEFINE -->
+  <div class="menu-item" data-menu="define">Define
+    <div class="dropdown">
+      <div class="dd-sub" onclick="toggleSubmenu(event, this)">
+        <div class="dd-item"><span>New Control</span><span>▶</span></div>
+        <div class="dd-sub-menu">
+          <div class="dd-item" onclick="createControlForSelected('magnitude')"><span>Force Magnitude</span></div>
+          <div class="dd-item" onclick="createControlForSelected('direction')"><span>Force Direction</span></div>
+          <div class="dd-item" onclick="createControlForSelected('fx')"><span>Force Fx</span></div>
+          <div class="dd-item" onclick="createControlForSelected('fy')"><span>Force Fy</span></div>
+          <div class="dd-item" onclick="createControlForSelected('mass')"><span>Body Mass</span></div>
+          <div class="dd-item" onclick="createControlForSelected('vx')"><span>Initial Velocity Vx</span></div>
+          <div class="dd-item" onclick="createControlForSelected('vy')"><span>Initial Velocity Vy</span></div>
+        </div>
+      </div>
+      <div class="dd-item" onclick="openControlPropsModal()"><span>Control Properties...</span></div>
+      <div class="dd-sep"></div>
+      <div class="dd-item" onclick="openFormulaEditor()"><span>Formula Editor...</span></div>
+      <div class="dd-item" onclick="openVariablesList()"><span>Variables & Inputs...</span></div>
+    </div>
+  </div>
+
+  <!-- MEASURE -->
+  <div class="menu-item" data-menu="measure">Measure
+    <div class="dropdown">
+      <div class="dd-item" onclick="createMeasure('Time', 'Graph')"><span>Time</span></div>
+      <div class="dd-item" onclick="createMeasure('Position', 'Graph')"><span>Position (X, Y)</span></div>
+      <div class="dd-item" onclick="createMeasure('Displacement', 'Meter')"><span>Displacement</span></div>
+      <div class="dd-item" onclick="createMeasure('Velocity', 'Graph')"><span>Velocity (Vx, Vy)</span></div>
+      <div class="dd-item" onclick="createMeasure('Acceleration', 'Graph')"><span>Acceleration (Ax, Ay)</span></div>
+      <div class="dd-item" onclick="createMeasure('Force', 'Graph')"><span>Total Force</span></div>
+      <div class="dd-item" onclick="createMeasure('Momentum', 'Meter')"><span>Momentum</span></div>
+      <div class="dd-sub" onclick="toggleSubmenu(event, this)">
+        <div class="dd-item"><span>Kinetic Energy</span><span>▶</span></div>
+        <div class="dd-sub-menu">
+          <div class="dd-item" onclick="createMeasure('KineticEnergy', 'Graph')"><span>Translational</span></div>
+          <div class="dd-item" onclick="createMeasure('RotationalKE', 'Graph')"><span>Rotational</span></div>
+          <div class="dd-item" onclick="createMeasure('TotalEnergy', 'Graph')"><span>Total Energy</span></div>
+        </div>
+      </div>
+      <div class="dd-item" onclick="createMeasure('PotentialEnergy', 'Meter')"><span>Potential Energy</span></div>
+      <div class="dd-item" onclick="createMeasure('AngularVelocity', 'Meter')"><span>Angular Velocity</span></div>
+      <div class="dd-item" onclick="createMeasure('Torque', 'Meter')"><span>Torque</span></div>
+      <div class="dd-sep"></div>
+      <div class="dd-item" onclick="createMeasure('Custom', 'Graph')"><span>Custom Graph (y1, y2)...</span></div>
+      <div class="dd-item" onclick="createMeasure('Custom', 'Meter')"><span>Digital Meter...</span></div>
+      <div class="dd-sub" onclick="toggleSubmenu(event, this)">
+        <div class="dd-item"><span>Vectors</span><span>▶</span></div>
+        <div class="dd-sub-menu">
+          <div class="dd-item" onclick="toggleVector('vel')"><span>Velocity Vector</span></div>
+          <div class="dd-item" onclick="toggleVector('acc')"><span>Acceleration Vector</span></div>
+          <div class="dd-item" onclick="toggleVector('force')"><span>Force Vector</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCRIPT -->
+  <div class="menu-item" data-menu="script">Script
+    <div class="dropdown">
+      <div class="dd-item" onclick="openScriptEditor()"><span>New / Edit Script...</span></div>
+      <div class="dd-item" onclick="runUserScript()"><span>Run Script</span></div>
+      <div class="dd-item" onclick="stopSim()"><span>Stop Script</span></div>
+      <div class="dd-item" onclick="openPlotWvsThetaModal()"><span>Plot W vs θ Table & Graph...</span></div>
+    </div>
+  </div>
+
+  <!-- WINDOW -->
+  <div class="menu-item" data-menu="window">Window
+    <div class="dropdown">
+      <div class="dd-item" onclick="openFloatingWin('win-properties')"><span>Properties</span></div>
+      <div class="dd-item" onclick="openFloatingWin('win-appearance')"><span>Appearance</span></div>
+      <div class="dd-item" onclick="openFloatingWin('win-geometry')"><span>Geometry</span></div>
+      <div class="dd-sep"></div>
+      <div class="dd-item" onclick="cascadeWindows()"><span>Cascade Windows</span></div>
+      <div class="dd-item" onclick="closeAllFloating()"><span>Close Floating Windows</span></div>
+    </div>
+  </div>
+
+  <!-- HELP -->
+  <div class="menu-item" data-menu="help">Help
+    <div class="dropdown">
+      <div class="dd-item" onclick="openHelpModal()"><span>Help Contents & Guide</span></div>
+      <div class="dd-item" onclick="loadWorkExperimentPreset()"><span>Tutorial: Work & Force Angle</span></div>
+      <div class="dd-sep"></div>
+      <div class="dd-item" onclick="openAboutModal()"><span>About Interactive Physics...</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- TOOLBAR -->
+<div id="toolbar">
+  <div class="tb-btn" title="New (Ctrl+N)" onclick="cmdNew()">📄</div>
+  <div class="tb-btn" title="Open (Ctrl+O)" onclick="cmdOpen()">📂</div>
+  <div class="tb-btn" title="Save (Ctrl+S)" onclick="cmdSave()">💾</div>
+  <div class="tb-sep"></div>
+  <div class="tb-btn" title="Cut (Ctrl+X)" onclick="cmdCut()">✂️</div>
+  <div class="tb-btn" title="Copy (Ctrl+C)" onclick="cmdCopy()">📋</div>
+  <div class="tb-btn" title="Paste (Ctrl+V)" onclick="cmdPaste()">📌</div>
+  <div class="tb-btn" title="Delete Selected (Del)" onclick="cmdDelete()">🗑️</div>
+  <div class="tb-btn" title="Undo (Ctrl+Z)" onclick="cmdUndo()">↩️</div>
+  <div class="tb-btn" title="Redo (Ctrl+Y)" onclick="cmdRedo()">↪️</div>
+  <div class="tb-sep"></div>
+  <div class="tb-btn" title="Zoom In" onclick="zoomCanvas(1.25)">🔍+</div>
+  <div class="tb-btn" title="Zoom Out" onclick="zoomCanvas(0.8)">🔍-</div>
+  <div class="tb-btn" title="Zoom to Fit" onclick="zoomToFit()">⛶</div>
+  <div class="tb-btn" id="tb-snap" title="Toggle Snap to Grid" onclick="toggleViewFlag('snap')">🧲</div>
+  <div class="tb-sep"></div>
+  <div class="tb-btn" title="Properties Window" onclick="openFloatingWin('win-properties')">⚙️</div>
+  <div class="tb-btn" title="Appearance Window" onclick="openFloatingWin('win-appearance')">🎨</div>
+  <div class="tb-sep"></div>
+
+  <!-- SIMULATION CONTROLS -->
+  <button id="btn-run" class="sim-btn" onclick="runSim()">
+    <span style="color:#008000;">▶</span> Run
+  </button>
+  <button id="btn-stop" class="sim-btn" onclick="stopSim()">
+    <span style="color:#cc0000;">■</span> Stop
+  </button>
+  <button id="btn-reset" class="sim-btn" onclick="resetSim()">
+    <span style="color:#000080;">↺</span> Reset
+  </button>
+  <div class="tb-sep"></div>
+  <button class="sim-btn" style="font-weight:normal; background:#e8f0fe;" onclick="loadWorkExperimentPreset()" title="Builds the exact 14-step Work experiment automatically">
+    ⚡ Load Work Experiment
+  </button>
+  <button class="sim-btn" style="font-weight:normal;" onclick="openPlotWvsThetaModal()" title="View Table & Graph of Work vs Angle">
+    📊 W vs θ Table
+  </button>
+</div>
+
+<!-- MAIN WORKSPACE CONTAINER -->
+<div id="main-container">
+  <!-- LEFT TOOL PALETTE -->
+  <div id="tool-palette">
+    <div class="tool-icon active" id="tool-select" title="Select / Move (Arrow)" onclick="setTool('select')">
+      <svg class="icon" viewBox="0 0 16 16"><path d="M3 2 L3 13 L6 10 L9 15 L11 14 L8 9 L12 9 Z" fill="#000"/></svg>
+    </div>
+    <div class="tool-icon" id="tool-rotate" title="Rotate Body" onclick="setTool('rotate')">
+      <svg class="icon" viewBox="0 0 16 16"><path d="M12 5 A5 5 0 1 0 13 9" /><polyline points="9,5 12,5 12,2"/></svg>
+    </div>
+    <div class="tool-icon" id="tool-zoom" title="Zoom Tool" onclick="setTool('zoom')">
+      <svg class="icon" viewBox="0 0 16 16"><circle cx="7" cy="7" r="4"/><line x1="10" y1="10" x2="14" y2="14"/></svg>
+    </div>
+    <div class="tool-icon" id="tool-text" title="Text Label (A)" onclick="setTool('text')">
+      <span style="font-family:serif; font-weight:bold; font-size:14px;">A</span>
+    </div>
+
+    <div class="palette-sep"></div>
+
+    <div class="tool-icon" id="tool-circle" title="Circle Body" onclick="setTool('circle')">
+      <svg class="icon" viewBox="0 0 16 16"><circle cx="8" cy="8" r="5.5" fill="#99ccff"/></svg>
+    </div>
+    <div class="tool-icon" id="tool-rect" title="Rectangle Body" onclick="setTool('rect')">
+      <svg class="icon" viewBox="0 0 16 16"><rect x="2" y="4" width="12" height="8" fill="#ffcc99"/></svg>
+    </div>
+    <div class="tool-icon" id="tool-square" title="Square Body" onclick="setTool('square')">
+      <svg class="icon" viewBox="0 0 16 16"><rect x="3" y="3" width="10" height="10" fill="#ccff99"/></svg>
+    </div>
+    <div class="tool-icon" id="tool-polygon" title="Polygon Body (Click vertices, Double-click to finish)" onclick="setTool('polygon')">
+      <svg class="icon" viewBox="0 0 16 16"><polygon points="8,2 14,6 11,14 4,14 2,6" fill="#ff99cc"/></svg>
+    </div>
+    <div class="tool-icon" id="tool-point" title="Reference Point" onclick="setTool('point')">
+      <svg class="icon" viewBox="0 0 16 16"><circle cx="8" cy="8" r="2" fill="#000"/><line x1="8" y1="3" x2="8" y2="13"/><line x1="3" y1="8" x2="13" y2="8"/></svg>
+    </div>
+    <div class="tool-icon" id="tool-anchor" title="Anchor (Fix Body in Place)" onclick="setTool('anchor')">
+      <svg class="icon" viewBox="0 0 16 16"><circle cx="8" cy="4" r="2"/><line x1="8" y1="6" x2="8" y2="13"/><path d="M4 10 Q8 15 12 10"/></svg>
+    </div>
+
+    <div class="palette-sep"></div>
+
+    <div class="tool-icon" id="tool-pin" title="Pin Joint (Pivot)" onclick="setTool('pin')">
+      <svg class="icon" viewBox="0 0 16 16"><circle cx="8" cy="8" r="3" fill="#fff"/><circle cx="8" cy="8" r="1" fill="#000"/></svg>
+    </div>
+    <div class="tool-icon" id="tool-rod" title="Rigid Rod" onclick="setTool('rod')">
+      <svg class="icon" viewBox="0 0 16 16"><line x1="3" y1="13" x2="13" y2="3" stroke-width="2.5"/><circle cx="3" cy="13" r="1.5" fill="#fff"/><circle cx="13" cy="3" r="1.5" fill="#fff"/></svg>
+    </div>
+    <div class="tool-icon" id="tool-spring" title="Spring" onclick="setTool('spring')">
+      <svg class="icon" viewBox="0 0 16 16"><polyline points="2,8 4,4 6,12 8,4 10,12 12,4 14,8"/></svg>
+    </div>
+    <div class="tool-icon" id="tool-rope" title="Rope / String" onclick="setTool('rope')">
+      <svg class="icon" viewBox="0 0 16 16"><path d="M3 3 Q8 14 13 3" stroke-dasharray="2,1"/></svg>
+    </div>
+    <div class="tool-icon" id="tool-force" title="Apply Force Vector" onclick="setTool('force')">
+      <svg class="icon" viewBox="0 0 16 16"><line x1="2" y1="8" x2="13" y2="8" stroke="#d00" stroke-width="2"/><polygon points="14,8 10,5 10,11" fill="#d00" stroke="none"/></svg>
+    </div>
+    <div class="tool-icon" id="tool-motor" title="Rotational Motor" onclick="setTool('motor')">
+      <svg class="icon" viewBox="0 0 16 16"><circle cx="8" cy="8" r="5" fill="#ddd"/><text x="5" y="11" font-size="8" stroke="none" fill="#000">M</text></svg>
+    </div>
+  </div>
+
+  <!-- WORKSPACE -->
+  <div id="workspace-wrapper">
+    <canvas id="sim-canvas"></canvas>
+
+    <!-- FLOATING WINDOW: PROPERTIES -->
+    <div id="win-properties" class="floating-win" style="top: 14px; right: 14px; width: 268px; display: none;">
+      <div class="fw-header">
+        <span id="prop-win-title">Properties - No Selection</span>
+        <div class="win-btn" onclick="closeFloatingWin('win-properties')">×</div>
+      </div>
+      <div class="fw-body" id="prop-win-body">
+        <div style="color:#555; padding:10px 0; text-align:center;">Select a body, force, or meter in the workspace to edit its properties.</div>
+      </div>
+    </div>
+
+    <!-- FLOATING WINDOW: APPEARANCE -->
+    <div id="win-appearance" class="floating-win" style="top: 285px; right: 14px; width: 245px; display: none;">
+      <div class="fw-header">
+        <span>Appearance</span>
+        <div class="win-btn" onclick="closeFloatingWin('win-appearance')">×</div>
+      </div>
+      <div class="fw-body" id="app-win-body">
+        <div style="color:#555; text-align:center;">Select an object to change appearance.</div>
+      </div>
+    </div>
+
+    <!-- FLOATING WINDOW: GEOMETRY -->
+    <div id="win-geometry" class="floating-win" style="top: 150px; right: 292px; width: 230px; display: none;">
+      <div class="fw-header">
+        <span>Geometry</span>
+        <div class="win-btn" onclick="closeFloatingWin('win-geometry')">×</div>
+      </div>
+      <div class="fw-body" id="geom-win-body">
+        <div style="color:#555; text-align:center;">Select an object to view geometry.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- STATUS BAR -->
+<div id="status-bar">
+  <div class="status-cell" id="status-msg">Ready. Select a tool or click 'Load Work Experiment'.</div>
+  <div class="status-cell" id="status-coords">X: 0 m  Y: 0 m</div>
+  <div class="status-cell" id="status-time">Time: 0.00 s</div>
+  <div class="status-cell" id="status-fps">100 f/s</div>
+</div>
+
+<!-- MODAL DIALOG CONTAINER -->
+<div id="modal-backdrop">
+  <div class="modal-box" id="modal-content"></div>
+</div>
+
+<!-- RIGHT-CLICK CONTEXT MENU -->
+<div id="context-menu"></div>
+
+<script>
+/**
+ * ============================================================================
+ * INTERACTIVE PHYSICS - ENHANCED RIGID BODY & MANIPULATION ENGINE
+ * ============================================================================
+ */
+
+const state = {
+  running: false,
+  time: 0,
+  frame: 0,
+  accuracyFPS: 100,
+  decimalDigits: 2,
+  gravity: { enabled: true, x: 0, y: -9.8 },
+  airResistance: { enabled: false, k: 0.05 },
+  electrostatics: { enabled: false, k: 8.99e9 },
+  forceField: { enabled: false, fx: 0, fy: 0 },
+  collisionsEnabled: true,
+  pauseConditions: [],
+  view: {
+    zoom: 60,
+    panX: 0,
+    panY: 0,
+    grid: true,
+    snap: false,
+    axes: true,
+    rulers: true,
+    tracking: true,
+    vectors: { vel: false, acc: false, force: true }
+  },
+  tool: 'select',
+  bodies: [],
+  forces: [],
+  constraints: [],
+  controls: [],
+  meters: [],
+  texts: [],
+  selected: null, // { type: 'body'|'force'|'constraint'|'control'|'meter'|'text', id: number }
+  hovered: null,
+  clipboard: null,
+  undoStack: [],
+  redoStack: [],
+  userScript: "// Example Script:\n// Body[0].vx = 2;\n// runSim();"
+};
+
+let nextId = { body: 1, force: 1, constraint: 1, control: 1, meter: 1, text: 1 };
+let initialSnapshot = null;
+
+const canvas = document.getElementById('sim-canvas');
+const ctx = canvas.getContext('2d');
+const wrapper = document.getElementById('workspace-wrapper');
+
+function saveUndoSnapshot() {
+  const snap = JSON.stringify({
+    bodies: state.bodies,
+    forces: state.forces,
+    constraints: state.constraints,
+    controls: state.controls,
+    meters: state.meters,
+    texts: state.texts,
+    nextId: { ...nextId }
+  });
+  if (state.undoStack.length > 0 && state.undoStack[state.undoStack.length - 1] === snap) return;
+  state.undoStack.push(snap);
+  if (state.undoStack.length > 40) state.undoStack.shift();
+  state.redoStack = [];
+}
+
+function restoreFullSnapshot(snapStr) {
+  const snap = JSON.parse(snapStr);
+  state.bodies = snap.bodies || [];
+  state.forces = snap.forces || [];
+  state.constraints = snap.constraints || [];
+  state.controls = snap.controls || [];
+  state.meters = snap.meters || [];
+  state.texts = snap.texts || [];
+  if (snap.nextId) nextId = { ...snap.nextId };
+  state.selected = null;
+
+  document.querySelectorAll('.canvas-widget').forEach(el => el.remove());
+  state.controls.forEach(spawnControlWidget);
+  state.meters.forEach(spawnMeterWidget);
+  renderPropertiesWindow();
+  renderAppearanceWindow();
+  renderGeometryWindow();
+  render();
+}
+
+function resizeCanvas() {
+  const w = Math.max(100, wrapper.clientWidth);
+  const h = Math.max(100, wrapper.clientHeight);
+  canvas.width = w;
+  canvas.height = h;
+  clampWidgetsInsideWorkspace();
+  render();
+}
+
+window.addEventListener('resize', resizeCanvas);
+window.addEventListener('orientationchange', () => setTimeout(resizeCanvas, 120));
+
+function clampWidgetsInsideWorkspace() {
+  const maxW = wrapper.clientWidth;
+  const maxH = wrapper.clientHeight;
+  document.querySelectorAll('.canvas-widget, .floating-win').forEach(el => {
+    if (el.style.display === 'none') return;
+    const rect = el.getBoundingClientRect();
+    const wRect = wrapper.getBoundingClientRect();
+    let left = rect.left - wRect.left;
+    let top = rect.top - wRect.top;
+    if (left + rect.width > maxW - 6) left = Math.max(4, maxW - rect.width - 6);
+    if (top + rect.height > maxH - 6) top = Math.max(4, maxH - rect.height - 6);
+    if (left < 4) left = 4;
+    if (top < 4) top = 4;
+    el.style.left = left + 'px';
+    el.style.top = top + 'px';
+    el.style.right = 'auto';
+  });
+}
+
+function worldToScreen(wx, wy) {
+  const cx = canvas.width / 2 + state.view.panX;
+  const cy = canvas.height / 2 + state.view.panY;
+  return {
+    x: cx + wx * state.view.zoom,
+    y: cy - wy * state.view.zoom
+  };
+}
+
+function screenToWorld(sx, sy) {
+  const cx = canvas.width / 2 + state.view.panX;
+  const cy = canvas.height / 2 + state.view.panY;
+  return {
+    x: (sx - cx) / state.view.zoom,
+    y: (cy - sy) / state.view.zoom
+  };
+}
+
+function applySnap(wPos) {
+  if (!state.view.snap) return wPos;
+  const step = 0.5;
+  return {
+    x: Math.round(wPos.x / step) * step,
+    y: Math.round(wPos.y / step) * step
+  };
+}
+
+function rotateVec(x, y, ang) {
+  const c = Math.cos(ang), s = Math.sin(ang);
+  return { x: x * c - y * s, y: x * s + y * c };
+}
+
+/**
+ * Safe recursive-descent math expression evaluator
+ */
+function evaluateFormula(expr) {
+  if (typeof expr === 'number') return Number.isFinite(expr) ? expr : 0;
+  if (!expr || String(expr).trim() === '') return 0;
+
+  let src = String(expr).trim();
+  while (/\|[^|]+\|/.test(src)) {
+    src = src.replace(/\|([^|]+)\|/g, 'abs($1)');
+  }
+
+  src = src.replace(/\bpi\b/gi, () => String(Math.PI));
+  src = src.replace(/\bt\b/g, () => String(state.time));
+
+  src = src.replace(/Input\[(\d+)\]/gi, (_, id) => {
+    const ctrl = state.controls.find(c => c.id === parseInt(id, 10));
+    const val = ctrl ? parseFloat(ctrl.value) : 0;
+    return String(Number.isFinite(val) ? val : 0);
+  });
+
+  src = src.replace(/(?:ConstraintForce|Force)\[(\d+)\]/gi, (_, id) => {
+    const f = state.forces.find(item => item.id === parseInt(id, 10));
+    if (!f) return '0';
+    return String(Math.hypot(f.fx || 0, f.fy || 0));
+  });
+
+  src = src.replace(/Body\[(\d+)\]\.([A-Za-z0-9_.]+)/gi, (_, id, propPath) => {
+    const b = state.bodies.find(item => item.id === parseInt(id, 10));
+    if (!b) return '0';
+    const p = propPath.toUpperCase();
+    if (p === 'P.X' || p === 'X') return String(b.x);
+    if (p === 'P.Y' || p === 'Y') return String(b.y);
+    if (p === 'V.X' || p === 'VX') return String(b.vx);
+    if (p === 'V.Y' || p === 'VY') return String(b.vy);
+    if (p === 'V') return String(Math.hypot(b.vx, b.vy));
+    if (p === 'A.X' || p === 'AX') return String(b.ax);
+    if (p === 'A.Y' || p === 'AY') return String(b.ay);
+    if (p === 'A') return String(Math.hypot(b.ax, b.ay));
+    if (p === 'M' || p === 'MASS') return String(b.mass);
+    if (p === 'KE') return String(0.5 * b.mass * (b.vx * b.vx + b.vy * b.vy));
+    return '0';
+  });
+
+  const tokens = [];
+  let i = 0;
+  while (i < src.length) {
+    const ch = src[i];
+    if (/\s/.test(ch)) { i++; continue; }
+    if (/[0-9.]/.test(ch)) {
+      let numStr = '';
+      while (i < src.length && /[0-9.eE+-]/.test(src[i])) {
+        if ((src[i] === '+' || src[i] === '-') && numStr.slice(-1).toLowerCase() !== 'e') break;
+        numStr += src[i++];
+      }
+      const n = parseFloat(numStr);
+      tokens.push({ type: 'num', value: Number.isFinite(n) ? n : 0 });
+      continue;
+    }
+    if (/[a-zA-Z_]/.test(ch)) {
+      let fnName = '';
+      while (i < src.length && /[a-zA-Z0-9_]/.test(src[i])) fnName += src[i++];
+      tokens.push({ type: 'fn', value: fnName.toLowerCase() });
+      continue;
+    }
+    if ('+-*/^(),'.includes(ch)) {
+      tokens.push({ type: 'op', value: ch });
+      i++;
+      continue;
+    }
+    i++;
+  }
+
+  let pos = 0;
+  function peek() { return tokens[pos]; }
+  function consume() { return tokens[pos++]; }
+
+  function parseExpr() {
+    let left = parseTerm();
+    while (peek() && peek().type === 'op' && (peek().value === '+' || peek().value === '-')) {
+      const op = consume().value;
+      const right = parseTerm();
+      left = op === '+' ? left + right : left - right;
+    }
+    return left;
+  }
+
+  function parseTerm() {
+    let left = parsePower();
+    while (peek() && peek().type === 'op' && (peek().value === '*' || peek().value === '/')) {
+      const op = consume().value;
+      const right = parsePower();
+      if (op === '/') left = Math.abs(right) < 1e-12 ? 0 : left / right;
+      else left = left * right;
+    }
+    return left;
+  }
+
+  function parsePower() {
+    let base = parseUnary();
+    if (peek() && peek().type === 'op' && peek().value === '^') {
+      consume();
+      const exp = parseUnary();
+      base = Math.pow(base, exp);
+    }
+    return base;
+  }
+
+  function parseUnary() {
+    if (peek() && peek().type === 'op' && peek().value === '+') { consume(); return parseUnary(); }
+    if (peek() && peek().type === 'op' && peek().value === '-') { consume(); return -parseUnary(); }
+    return parsePrimary();
+  }
+
+  function parsePrimary() {
+    const tok = peek();
+    if (!tok) return 0;
+    if (tok.type === 'num') { consume(); return tok.value; }
+    if (tok.type === 'fn') {
+      const fn = consume().value;
+      if (peek() && peek().type === 'op' && peek().value === '(') {
+        consume();
+        const arg = parseExpr();
+        if (peek() && peek().type === 'op' && peek().value === ')') consume();
+        if (fn === 'sin') return Math.sin(arg);
+        if (fn === 'cos') return Math.cos(arg);
+        if (fn === 'tan') return Math.tan(arg);
+        if (fn === 'sqrt') return arg < 0 ? 0 : Math.sqrt(arg);
+        if (fn === 'abs') return Math.abs(arg);
+      }
+      return 0;
+    }
+    if (tok.type === 'op' && tok.value === '(') {
+      consume();
+      const val = parseExpr();
+      if (peek() && peek().type === 'op' && peek().value === ')') consume();
+      return val;
+    }
+    consume();
+    return 0;
+  }
+
+  try {
+    const out = parseExpr();
+    return Number.isFinite(out) ? out : 0;
+  } catch (_) {
+    return 0;
+  }
+}
+
+function evaluateCondition(condStr) {
+  if (!condStr || !condStr.trim()) return false;
+  const parts = condStr.match(/^(.+?)(>=|<=|==|=|>|<)(.+)$/);
+  if (!parts) return false;
+  const lhs = evaluateFormula(parts[1]);
+  const op = parts[2];
+  const rhs = evaluateFormula(parts[3]);
+  switch (op) {
+    case '>=': return lhs >= rhs;
+    case '<=': return lhs <= rhs;
+    case '>': return lhs > rhs;
+    case '<': return lhs < rhs;
+    case '=':
+    case '==': return Math.abs(lhs - rhs) < 1e-4;
+    default: return false;
+  }
+}
+
+// --- OBJECT FACTORIES ---
+function computeMomentOfInertia(b) {
+  if (b.anchored || b.shape === 'point' || b.mass <= 0) return Infinity;
+  if (b.shape === 'circle') return 0.5 * b.mass * b.radius * b.radius;
+  return (1 / 12) * b.mass * (b.width * b.width + b.height * b.height);
+}
+
+function createBody(opts) {
+  const id = nextId.body++;
+  const body = {
+    id,
+    name: opts.name || `Body[${id}]`,
+    shape: opts.shape || 'rect',
+    x: opts.x ?? 0,
+    y: opts.y ?? 0,
+    vx: opts.vx ?? 0,
+    vy: opts.vy ?? 0,
+    ax: 0,
+    ay: 0,
+    angle: opts.angle ?? 0,
+    omega: opts.omega ?? 0,
+    alpha: 0,
+    mass: Math.max(0.01, opts.mass ?? 1.0),
+    massFormula: opts.massFormula || null,
+    vxFormula: opts.vxFormula || null,
+    vyFormula: opts.vyFormula || null,
+    width: opts.width ?? 1.0,
+    height: opts.height ?? 1.0,
+    radius: opts.radius ?? 0.5,
+    points: opts.points || [],
+    staticFriction: opts.staticFriction ?? 0.3,
+    kineticFriction: opts.kineticFriction ?? 0.2,
+    elasticity: opts.elasticity ?? 0.5,
+    charge: opts.charge ?? 0,
+    anchored: opts.anchored ?? false,
+    color: opts.color || (opts.anchored ? '#c0c0c0' : '#99ccff'),
+    borderColor: opts.borderColor || '#000000',
+    visible: opts.visible ?? true,
+    trail: []
+  };
+  state.bodies.push(body);
+  return body;
+}
+
+function createForce(opts) {
+  const id = nextId.force++;
+  const force = {
+    id,
+    name: `ConstraintForce[${id}]`,
+    bodyId: opts.bodyId,
+    offsetX: opts.offsetX ?? 0,
+    offsetY: opts.offsetY ?? 0,
+    isPolar: opts.isPolar ?? false,
+    fx: opts.fx ?? 10,
+    fy: opts.fy ?? 0,
+    mag: opts.mag ?? 10,
+    dir: opts.dir ?? 0,
+    fxFormula: opts.fxFormula || null,
+    fyFormula: opts.fyFormula || null,
+    magFormula: opts.magFormula || null,
+    dirFormula: opts.dirFormula || null,
+    color: '#cc0000'
+  };
+  updateForceComponents(force);
+  state.forces.push(force);
+  return force;
+}
+
+function updateForceComponents(f) {
+  state.controls.forEach(c => {
+    if (c.targetType === 'force' && c.targetId === f.id) {
+      if (c.prop === 'magnitude' && !f.magFormula) f.mag = parseFloat(c.value) || 0;
+      if (c.prop === 'direction' && !f.dirFormula) f.dir = parseFloat(c.value) || 0;
+      if (c.prop === 'fx' && !f.fxFormula) f.fx = parseFloat(c.value) || 0;
+      if (c.prop === 'fy' && !f.fyFormula) f.fy = parseFloat(c.value) || 0;
+    }
+  });
+
+  if (f.isPolar) {
+    const m = f.magFormula ? evaluateFormula(f.magFormula) : f.mag;
+    const d = f.dirFormula ? evaluateFormula(f.dirFormula) : f.dir;
+    f.mag = m;
+    f.dir = d;
+    f.fx = m * Math.cos(d);
+    f.fy = m * Math.sin(d);
+  } else {
+    f.fx = f.fxFormula ? evaluateFormula(f.fxFormula) : f.fx;
+    f.fy = f.fyFormula ? evaluateFormula(f.fyFormula) : f.fy;
+    f.mag = Math.hypot(f.fx, f.fy);
+    f.dir = Math.atan2(f.fy, f.fx);
+  }
+}
+
+// --- REALISTIC 2D RIGID BODY & SAT COLLISION ENGINE ---
+function stepPhysics(dt) {
+  state.bodies.forEach(b => {
+    if (b.massFormula) b.mass = Math.max(0.01, evaluateFormula(b.massFormula));
+    if (state.time === 0) {
+      if (b.vxFormula) b.vx = evaluateFormula(b.vxFormula);
+      if (b.vyFormula) b.vy = evaluateFormula(b.vyFormula);
+    }
+  });
+  state.forces.forEach(updateForceComponents);
+
+  const netF = new Map();
+  state.bodies.forEach(b => netF.set(b.id, { fx: 0, fy: 0, torque: 0 }));
+
+  // 1. World Forces (Gravity, Force Field, Air Resistance)
+  state.bodies.forEach(b => {
+    if (b.anchored || b.shape === 'point') return;
+    const f = netF.get(b.id);
+    if (state.gravity.enabled) {
+      f.fx += b.mass * state.gravity.x;
+      f.fy += b.mass * state.gravity.y;
+    }
+    if (state.forceField.enabled) {
+      f.fx += state.forceField.fx;
+      f.fy += state.forceField.fy;
+    }
+    if (state.airResistance.enabled) {
+      f.fx -= state.airResistance.k * b.vx;
+      f.fy -= state.airResistance.k * b.vy;
+    }
+  });
+
+  // 2. Applied Forces & Torque (r x F)
+  state.forces.forEach(force => {
+    const b = state.bodies.find(item => item.id === force.bodyId);
+    if (b && !b.anchored) {
+      const f = netF.get(b.id);
+      const rWorld = rotateVec(force.offsetX, force.offsetY, b.angle);
+      f.fx += force.fx;
+      f.fy += force.fy;
+      f.torque += rWorld.x * force.fy - rWorld.y * force.fx;
+    }
+  });
+
+  // 3. Constraints (Springs, Rods, Ropes, Pins, Motors)
+  state.constraints.forEach(c => {
+    const b1 = state.bodies.find(b => b.id === c.b1);
+    const b2 = c.b2 ? state.bodies.find(b => b.id === c.b2) : null;
+    if (!b1) return;
+
+    const r1 = rotateVec(c.off1x || 0, c.off1y || 0, b1.angle);
+    const p1x = b1.x + r1.x;
+    const p1y = b1.y + r1.y;
+
+    const r2 = b2 ? rotateVec(c.off2x || 0, c.off2y || 0, b2.angle) : { x: 0, y: 0 };
+    const p2x = b2 ? b2.x + r2.x : c.wx;
+    const p2y = b2 ? b2.y + r2.y : c.wy;
+
+    const dx = p2x - p1x;
+    const dy = p2y - p1y;
+    const dist = Math.hypot(dx, dy) || 1e-6;
+    const nx = dx / dist;
+    const ny = dy / dist;
+
+    // Velocity at attachment points
+    const v1x = b1.vx - b1.omega * r1.y;
+    const v1y = b1.vy + b1.omega * r1.x;
+    const v2x = b2 ? (b2.vx - b2.omega * r2.y) : 0;
+    const v2y = b2 ? (b2.vy + b2.omega * r2.x) : 0;
+    const rvx = v2x - v1x;
+    const rvy = v2y - v1y;
+
+    if (c.type === 'spring') {
+      const stretch = dist - c.restLength;
+      const k = c.stiffness || 30;
+      const damp = c.damping || 0.8;
+      const fMag = k * stretch + damp * (rvx * nx + rvy * ny);
+      const fx = fMag * nx, fy = fMag * ny;
+      if (!b1.anchored) {
+        const f1 = netF.get(b1.id);
+        f1.fx += fx; f1.fy += fy;
+        f1.torque += r1.x * fy - r1.y * fx;
+      }
+      if (b2 && !b2.anchored) {
+        const f2 = netF.get(b2.id);
+        f2.fx -= fx; f2.fy -= fy;
+        f2.torque -= r2.x * fy - r2.y * fx;
+      }
+    } else if (c.type === 'rod' || c.type === 'rope') {
+      if (c.type === 'rope' && dist <= c.restLength) return;
+      const stretch = dist - c.restLength;
+      const k = 2500;
+      const damp = 25;
+      const fMag = k * stretch + damp * (rvx * nx + rvy * ny);
+      const fx = fMag * nx, fy = fMag * ny;
+      if (!b1.anchored) {
+        const f1 = netF.get(b1.id);
+        f1.fx += fx; f1.fy += fy;
+        f1.torque += r1.x * fy - r1.y * fx;
+      }
+      if (b2 && !b2.anchored) {
+        const f2 = netF.get(b2.id);
+        f2.fx -= fx; f2.fy -= fy;
+        f2.torque -= r2.x * fy - r2.y * fx;
+      }
+    } else if (c.type === 'pin') {
+      const k = 3000;
+      const damp = 35;
+      const fx = k * dx + damp * rvx;
+      const fy = k * dy + damp * rvy;
+      if (!b1.anchored) {
+        const f1 = netF.get(b1.id);
+        f1.fx += fx; f1.fy += fy;
+        f1.torque += r1.x * fy - r1.y * fx;
+      }
+      if (b2 && !b2.anchored) {
+        const f2 = netF.get(b2.id);
+        f2.fx -= fx; f2.fy -= fy;
+        f2.torque -= r2.x * fy - r2.y * fx;
+      }
+    } else if (c.type === 'motor') {
+      if (!b1.anchored) b1.omega = c.speed || 2.0;
+    }
+  });
+
+  // 4. Semi-Implicit Euler Integration (Linear + Angular)
+  state.bodies.forEach(b => {
+    if (b.anchored || b.shape === 'point') {
+      b.vx = 0; b.vy = 0; b.ax = 0; b.ay = 0; b.omega = 0; b.alpha = 0;
+      return;
+    }
+    const f = netF.get(b.id);
+    const I = computeMomentOfInertia(b);
+    b.ax = f.fx / b.mass;
+    b.ay = f.fy / b.mass;
+    b.alpha = Number.isFinite(I) && I > 0 ? f.torque / I : 0;
+
+    b.vx += b.ax * dt;
+    b.vy += b.ay * dt;
+    b.omega = (b.omega + b.alpha * dt) * 0.9995; // subtle numerical rotational stability
+
+    b.x += b.vx * dt;
+    b.y += b.vy * dt;
+    b.angle += b.omega * dt;
+
+    if (state.view.tracking && state.frame % 4 === 0) {
+      b.trail.push({ x: b.x, y: b.y });
+      if (b.trail.length > 140) b.trail.shift();
+    }
+  });
+
+  // 5. SAT & Circle-Polygon Rigid Body Collisions
+  if (state.collisionsEnabled) {
+    resolveCollisions(dt);
+  }
+
+  state.time += dt;
+  state.frame++;
+  recordMeters();
+
+  for (let i = 0; i < state.pauseConditions.length; i++) {
+    const cond = state.pauseConditions[i];
+    if (evaluateCondition(cond)) {
+      stopSim();
+      setStatus(`Paused: condition "${cond}" met at t = ${state.time.toFixed(2)} s.`);
+      break;
+    }
+  }
+}
+
+// Get world vertices for Polygon / Rectangle
+function getWorldVertices(b) {
+  if (b.shape === 'polygon' && b.points.length >= 3) {
+    return b.points.map(pt => {
+      const r = rotateVec(pt.x, pt.y, b.angle);
+      return { x: b.x + r.x, y: b.y + r.y };
+    });
+  }
+  const hw = b.width / 2, hh = b.height / 2;
+  const local = [
+    { x: -hw, y: -hh },
+    { x: hw, y: -hh },
+    { x: hw, y: hh },
+    { x: -hw, y: hh }
+  ];
+  return local.map(pt => {
+    const r = rotateVec(pt.x, pt.y, b.angle);
+    return { x: b.x + r.x, y: b.y + r.y };
+  });
+}
+
+function projectVerts(verts, ax, ay) {
+  let min = Infinity, max = -Infinity;
+  for (let v of verts) {
+    const p = v.x * ax + v.y * ay;
+    if (p < min) min = p;
+    if (p > max) max = p;
+  }
+  return { min, max };
+}
+
+function collideBodies(A, B) {
+  // Circle vs Circle
+  if (A.shape === 'circle' && B.shape === 'circle') {
+    const dx = B.x - A.x, dy = B.y - A.y;
+    const dist = Math.hypot(dx, dy);
+    const rSum = A.radius + B.radius;
+    if (dist >= rSum) return null;
+    const nx = dist > 1e-6 ? dx / dist : 0;
+    const ny = dist > 1e-6 ? dy / dist : 1;
+    return {
+      nx, ny,
+      depth: rSum - dist,
+      contactX: A.x + nx * A.radius,
+      contactY: A.y + ny * A.radius
+    };
+  }
+
+  // Circle vs Polygon/Rect
+  if (A.shape === 'circle' || B.shape === 'circle') {
+    const circ = A.shape === 'circle' ? A : B;
+    const poly = A.shape === 'circle' ? B : A;
+    const verts = getWorldVertices(poly);
+    let minOverlap = Infinity;
+    let bestNx = 0, bestNy = 0;
+
+    const axes = [];
+    for (let i = 0; i < verts.length; i++) {
+      const v1 = verts[i], v2 = verts[(i + 1) % verts.length];
+      const ex = v2.x - v1.x, ey = v2.y - v1.y;
+      const len = Math.hypot(ex, ey) || 1;
+      axes.push({ x: -ey / len, y: ex / len });
+    }
+    // Closest vertex axis
+    let closestV = verts[0], minD = Infinity;
+    for (let v of verts) {
+      const d = Math.hypot(circ.x - v.x, circ.y - v.y);
+      if (d < minD) { minD = d; closestV = v; }
+    }
+    if (minD > 1e-6) {
+      axes.push({ x: (circ.x - closestV.x) / minD, y: (circ.y - closestV.y) / minD });
+    }
+
+    for (let ax of axes) {
+      const pPoly = projectVerts(verts, ax.x, ax.y);
+      const cProj = circ.x * ax.x + circ.y * ax.y;
+      const pCirc = { min: cProj - circ.radius, max: cProj + circ.radius };
+      const overlap = Math.min(pPoly.max, pCirc.max) - Math.max(pPoly.min, pCirc.min);
+      if (overlap <= 0) return null;
+      if (overlap < minOverlap) {
+        minOverlap = overlap;
+        bestNx = ax.x;
+        bestNy = ax.y;
+      }
+    }
+
+    // Ensure normal points from A -> B
+    const dirAB = (B.x - A.x) * bestNx + (B.y - A.y) * bestNy;
+    if (dirAB < 0) { bestNx = -bestNx; bestNy = -bestNy; }
+
+    const signToCirc = (circ === B) ? -1 : 1;
+    return {
+      nx: bestNx,
+      ny: bestNy,
+      depth: minOverlap,
+      contactX: circ.x + bestNx * signToCirc * circ.radius,
+      contactY: circ.y + bestNy * signToCirc * circ.radius
+    };
+  }
+
+  // Polygon/Rect vs Polygon/Rect (SAT)
+  const vA = getWorldVertices(A);
+  const vB = getWorldVertices(B);
+  let minOverlap = Infinity;
+  let bestNx = 0, bestNy = 0;
+
+  const edges = [];
+  for (let i = 0; i < vA.length; i++) edges.push([vA[i], vA[(i + 1) % vA.length]]);
+  for (let i = 0; i < vB.length; i++) edges.push([vB[i], vB[(i + 1) % vB.length]]);
+
+  for (let [p1, p2] of edges) {
+    const ex = p2.x - p1.x, ey = p2.y - p1.y;
+    const len = Math.hypot(ex, ey) || 1;
+    const ax = -ey / len, ay = ex / len;
+    const projA = projectVerts(vA, ax, ay);
+    const projB = projectVerts(vB, ax, ay);
+    const overlap = Math.min(projA.max, projB.max) - Math.max(projA.min, projB.min);
+    if (overlap <= 0) return null;
+    if (overlap < minOverlap) {
+      minOverlap = overlap;
+      bestNx = ax;
+      bestNy = ay;
+    }
+  }
+
+  if ((B.x - A.x) * bestNx + (B.y - A.y) * bestNy < 0) {
+    bestNx = -bestNx; bestNy = -bestNy;
+  }
+
+  // Approximate contact point as deepest vertex
+  let contactX = (A.x + B.x) / 2, contactY = (A.y + B.y) / 2;
+  let maxPen = -Infinity;
+  for (let v of vA) {
+    const pen = (v.x - B.x) * bestNx + (v.y - B.y) * bestNy;
+    if (pen > maxPen) { maxPen = pen; contactX = v.x; contactY = v.y; }
+  }
+
+  return { nx: bestNx, ny: bestNy, depth: minOverlap, contactX, contactY };
+}
+
+function resolveCollisions(dt) {
+  for (let iter = 0; iter < 2; iter++) {
+    for (let i = 0; i < state.bodies.length; i++) {
+      for (let j = i + 1; j < state.bodies.length; j++) {
+        const A = state.bodies[i];
+        const B = state.bodies[j];
+        if (A.shape === 'point' || B.shape === 'point') continue;
+        if (A.anchored && B.anchored) continue;
+
+        const hit = collideBodies(A, B);
+        if (!hit) continue;
+
+        const invMassA = A.anchored ? 0 : 1 / A.mass;
+        const invMassB = B.anchored ? 0 : 1 / B.mass;
+        const invMassSum = invMassA + invMassB;
+        if (invMassSum === 0) continue;
+
+        // Positional Baumgarte stabilization
+        const slop = 0.002;
+        const percent = 0.8;
+        const corr = Math.max(0, hit.depth - slop) / invMassSum * percent;
+        if (!A.anchored) { A.x -= hit.nx * corr * invMassA; A.y -= hit.ny * corr * invMassA; }
+        if (!B.anchored) { B.x += hit.nx * corr * invMassB; B.y += hit.ny * corr * invMassB; }
+
+        const rAx = hit.contactX - A.x, rAy = hit.contactY - A.y;
+        const rBx = hit.contactX - B.x, rBy = hit.contactY - B.y;
+
+        const vAx = A.vx - A.omega * rAy, vAy = A.vy + A.omega * rAx;
+        const vBx = B.vx - B.omega * rBy, vBy = B.vy + B.omega * rBx;
+
+        const rvx = vBx - vAx, rvy = vBy - vAy;
+        const velAlongNormal = rvx * hit.nx + rvy * hit.ny;
+        if (velAlongNormal > 0) continue;
+
+        const e = Math.abs(velAlongNormal) < 0.2 ? 0 : Math.min(A.elasticity, B.elasticity);
+        const invIA = A.anchored ? 0 : 1 / computeMomentOfInertia(A);
+        const invIB = B.anchored ? 0 : 1 / computeMomentOfInertia(B);
+
+        const rnA = rAx * hit.ny - rAy * hit.nx;
+        const rnB = rBx * hit.ny - rBy * hit.nx;
+        const denom = invMassSum + rnA * rnA * invIA + rnB * rnB * invIB;
+
+        const jImp = -(1 + e) * velAlongNormal / denom;
+        const impX = jImp * hit.nx, impY = jImp * hit.ny;
+
+        if (!A.anchored) {
+          A.vx -= impX * invMassA;
+          A.vy -= impY * invMassA;
+          A.omega -= (rAx * impY - rAy * impX) * invIA;
+        }
+        if (!B.anchored) {
+          B.vx += impX * invMassB;
+          B.vy += impY * invMassB;
+          B.omega += (rBx * impY - rBy * impX) * invIB;
+        }
+
+        // Coulomb Friction Impulse
+        const tx = -hit.ny, ty = hit.nx;
+        const vt = rvx * tx + rvy * ty;
+        const rtA = rAx * ty - rAy * tx;
+        const rtB = rBx * ty - rBy * tx;
+        const denomT = invMassSum + rtA * rtA * invIA + rtB * rtB * invIB;
+        let jt = -vt / denomT;
+
+        const muS = Math.max(A.staticFriction, B.staticFriction);
+        const muK = Math.max(A.kineticFriction, B.kineticFriction);
+        if (Math.abs(jt) > jImp * muS) {
+          jt = -Math.sign(vt) * jImp * muK;
+        }
+
+        const fImpX = jt * tx, fImpY = jt * ty;
+        if (!A.anchored) {
+          A.vx -= fImpX * invMassA;
+          A.vy -= fImpY * invMassA;
+          A.omega -= (rAx * fImpY - rAy * fImpX) * invIA;
+        }
+        if (!B.anchored) {
+          B.vx += fImpX * invMassB;
+          B.vy += fImpY * invMassB;
+          B.omega += (rBx * fImpY - rBy * fImpX) * invIB;
+        }
+      }
+    }
+  }
+}
+
+// --- FRAME-PACED SIMULATION LOOP ---
+let rafId = null;
+let lastFrameTime = 0;
+let accumulator = 0;
+
+function runSim() {
+  if (state.running) return;
+  if (state.time === 0) {
+    initialSnapshot = JSON.stringify({
+      bodies: state.bodies,
+      forces: state.forces,
+      constraints: state.constraints
+    });
+  }
+  state.running = true;
+  lastFrameTime = performance.now();
+  accumulator = 0;
+  document.getElementById('btn-run').classList.add('running');
+  setStatus('Running simulation...');
+
+  function loop(now) {
+    if (!state.running) return;
+    const elapsedSec = Math.min(0.05, Math.max(0, (now - lastFrameTime) / 1000));
+    lastFrameTime = now;
+    accumulator += elapsedSec;
+
+    const fixedDt = 1 / Math.max(20, state.accuracyFPS);
+    let subSteps = 0;
+    while (accumulator >= fixedDt && subSteps < 14) {
+      stepPhysics(fixedDt);
+      accumulator -= fixedDt;
+      subSteps++;
+      if (!state.running) break;
+    }
+
+    updateUIReadouts();
+    render();
+    if (state.running) {
+      rafId = requestAnimationFrame(loop);
+    }
+  }
+  rafId = requestAnimationFrame(loop);
+}
+
+function stopSim() {
+  state.running = false;
+  accumulator = 0;
+  document.getElementById('btn-run').classList.remove('running');
+  if (rafId) {
+    cancelAnimationFrame(rafId);
+    rafId = null;
+  }
+  updateUIReadouts();
+  render();
+  setStatus('Simulation stopped.');
+}
+
+function resetSim() {
+  stopSim();
+  state.time = 0;
+  state.frame = 0;
+  if (initialSnapshot) {
+    try {
+      const snap = JSON.parse(initialSnapshot);
+      state.bodies = snap.bodies;
+      state.forces = snap.forces;
+      state.constraints = snap.constraints;
+    } catch (_) {}
+  }
+  state.bodies.forEach(b => { b.trail = []; });
+  state.meters.forEach(m => {
+    m.data = [];
+    m.val1 = 0;
+    m.val2 = 0;
+    updateMeterDOM(m);
+  });
+  state.forces.forEach(updateForceComponents);
+  updateUIReadouts();
+  renderPropertiesWindow();
+  render();
+  setStatus('Reset to initial state (t = 0.00 s).');
+}
+
+function clearTrails() {
+  state.bodies.forEach(b => { b.trail = []; });
+  render();
+}
+
+// --- RENDERING ---
+function render() {
+  const w = canvas.width;
+  const h = canvas.height;
+  ctx.clearRect(0, 0, w, h);
+
+  if (state.view.grid) drawGrid(w, h);
+  if (state.view.axes) drawAxes(w, h);
+
+  // Tracking trails
+  if (state.view.tracking) {
+    state.bodies.forEach(b => {
+      if (!b.visible || !b.trail || b.trail.length < 2) return;
+      ctx.save();
+      ctx.strokeStyle = 'rgba(0, 102, 204, 0.45)';
+      ctx.lineWidth = 1.2;
+      ctx.setLineDash([2, 2]);
+      ctx.beginPath();
+      b.trail.forEach((pt, idx) => {
+        const sp = worldToScreen(pt.x, pt.y);
+        if (idx === 0) ctx.moveTo(sp.x, sp.y);
+        else ctx.lineTo(sp.x, sp.y);
+      });
+      ctx.stroke();
+      ctx.restore();
+    });
+  }
+
+  state.bodies.forEach(b => {
+    if (b.visible) drawBody(b);
+  });
+
+  state.constraints.forEach(drawConstraint);
+  state.forces.forEach(drawForce);
+
+  state.bodies.forEach(b => {
+    if (!b.visible || b.anchored) return;
+    const pos = worldToScreen(b.x, b.y);
+    if (state.view.vectors.vel && Math.hypot(b.vx, b.vy) > 0.01) {
+      drawArrow(pos.x, pos.y, pos.x + b.vx * 25, pos.y - b.vy * 25, '#008000', 'V');
+    }
+    if (state.view.vectors.acc && Math.hypot(b.ax, b.ay) > 0.01) {
+      drawArrow(pos.x, pos.y, pos.x + b.ax * 15, pos.y - b.ay * 15, '#0000cc', 'A');
+    }
+  });
+
+  state.texts.forEach(t => {
+    const pos = worldToScreen(t.x, t.y);
+    const isSel = state.selected?.type === 'text' && state.selected.id === t.id;
+    ctx.save();
+    ctx.font = 'bold 12px Tahoma';
+    ctx.fillStyle = t.color || '#000';
+    ctx.fillText(t.text, pos.x, pos.y);
+    if (isSel) {
+      const m = ctx.measureText(t.text);
+      ctx.strokeStyle = '#0000ff';
+      ctx.setLineDash([2, 2]);
+      ctx.strokeRect(pos.x - 3, pos.y - 12, m.width + 6, 16);
+    }
+    ctx.restore();
+  });
+
+  if (state.view.rulers) drawRulers(w, h);
+  if (dragDraw) drawCreationPreview();
+  if (state.tool === 'polygon' && polyPoints.length > 0) drawPolygonInProgress();
+}
+
+function drawGrid(w, h) {
+  const stepPx = Math.max(12, state.view.zoom);
+  const origin = worldToScreen(0, 0);
+  ctx.strokeStyle = '#e6e6e6';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  for (let x = ((origin.x % stepPx) + stepPx) % stepPx; x < w; x += stepPx) {
+    ctx.moveTo(x, 0); ctx.lineTo(x, h);
+  }
+  for (let y = ((origin.y % stepPx) + stepPx) % stepPx; y < h; y += stepPx) {
+    ctx.moveTo(0, y); ctx.lineTo(w, y);
+  }
+  ctx.stroke();
+}
+
+function drawAxes(w, h) {
+  const origin = worldToScreen(0, 0);
+  ctx.strokeStyle = '#808080';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(0, origin.y); ctx.lineTo(w, origin.y);
+  ctx.moveTo(origin.x, 0); ctx.lineTo(origin.x, h);
+  ctx.stroke();
+
+  ctx.fillStyle = '#555';
+  ctx.font = '10px Tahoma';
+  const step = state.view.zoom;
+  for (let i = -25; i <= 25; i++) {
+    if (i === 0) continue;
+    const px = origin.x + i * step;
+    if (px > 20 && px < w - 10) {
+      ctx.beginPath(); ctx.moveTo(px, origin.y - 3); ctx.lineTo(px, origin.y + 3); ctx.stroke();
+      ctx.fillText(i, px - 4, origin.y + 13);
+    }
+    const py = origin.y - i * step;
+    if (py > 20 && py < h - 10) {
+      ctx.beginPath(); ctx.moveTo(origin.x - 3, py); ctx.lineTo(origin.x + 3, py); ctx.stroke();
+      ctx.fillText(i, origin.x + 6, py + 3);
+    }
+  }
+}
+
+function drawRulers(w, h) {
+  const origin = worldToScreen(0, 0);
+  ctx.fillStyle = '#f0f0f0';
+  ctx.fillRect(0, 0, w, 16);
+  ctx.fillRect(0, 0, 18, h);
+  ctx.strokeStyle = '#808080';
+  ctx.strokeRect(0, 0, w, 16);
+  ctx.strokeRect(0, 0, 18, h);
+
+  ctx.fillStyle = '#000';
+  ctx.font = '9px Tahoma';
+  const step = state.view.zoom;
+  for (let i = -30; i <= 30; i++) {
+    const px = origin.x + i * step;
+    if (px > 18 && px < w) {
+      ctx.beginPath(); ctx.moveTo(px, 10); ctx.lineTo(px, 16); ctx.stroke();
+      ctx.fillText(i, px + 2, 10);
+    }
+    const py = origin.y - i * step;
+    if (py > 16 && py < h) {
+      ctx.beginPath(); ctx.moveTo(12, py); ctx.lineTo(18, py); ctx.stroke();
+      ctx.fillText(i, 2, py - 2);
+    }
+  }
+}
+
+function getBodyHandlesScreen(b) {
+  const pos = worldToScreen(b.x, b.y);
+  const hw = (b.shape === 'circle' ? b.radius : b.width / 2) * state.view.zoom;
+  const hh = (b.shape === 'circle' ? b.radius : b.height / 2) * state.view.zoom;
+  const localHandles = [
+    { id: 'nw', lx: -hw, ly: -hh },
+    { id: 'n',  lx: 0,   ly: -hh },
+    { id: 'ne', lx: hw,  ly: -hh },
+    { id: 'e',  lx: hw,  ly: 0   },
+    { id: 'se', lx: hw,  ly: hh  },
+    { id: 's',  lx: 0,   ly: hh  },
+    { id: 'sw', lx: -hw, ly: hh  },
+    { id: 'w',  lx: -hw, ly: 0   },
+    { id: 'rot', lx: 0,  ly: -hh - 22 }
+  ];
+  const c = Math.cos(-b.angle), s = Math.sin(-b.angle);
+  return localHandles.map(h => ({
+    id: h.id,
+    x: pos.x + (h.lx * c - h.ly * s),
+    y: pos.y + (h.lx * s + h.ly * c)
+  }));
+}
+
+function drawBody(b) {
+  const pos = worldToScreen(b.x, b.y);
+  const isSel = state.selected && state.selected.type === 'body' && state.selected.id === b.id;
+  const isHov = state.hovered && state.hovered.type === 'body' && state.hovered.id === b.id;
+
+  ctx.save();
+  ctx.translate(pos.x, pos.y);
+  ctx.rotate(-b.angle);
+
+  ctx.fillStyle = b.color;
+  ctx.strokeStyle = isSel ? '#0000ff' : (isHov ? '#0066cc' : b.borderColor);
+  ctx.lineWidth = isSel ? 2 : (isHov ? 1.8 : 1.2);
+
+  if (b.shape === 'circle') {
+    const rPx = b.radius * state.view.zoom;
+    ctx.beginPath();
+    ctx.arc(0, 0, rPx, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(rPx, 0); ctx.stroke();
+  } else if (b.shape === 'rect') {
+    const wPx = b.width * state.view.zoom;
+    const hPx = b.height * state.view.zoom;
+    ctx.fillRect(-wPx / 2, -hPx / 2, wPx, hPx);
+    ctx.strokeRect(-wPx / 2, -hPx / 2, wPx, hPx);
+  } else if (b.shape === 'polygon' && b.points.length > 2) {
+    ctx.beginPath();
+    b.points.forEach((pt, idx) => {
+      const px = pt.x * state.view.zoom;
+      const py = -pt.y * state.view.zoom;
+      if (idx === 0) ctx.moveTo(px, py);
+      else ctx.lineTo(px, py);
+    });
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+  } else if (b.shape === 'point') {
+    ctx.beginPath();
+    ctx.arc(0, 0, 3.5, 0, Math.PI * 2);
+    ctx.fillStyle = '#000';
+    ctx.fill();
+  }
+
+  if (b.anchored) {
+    ctx.strokeStyle = '#333';
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.moveTo(-5, 0); ctx.lineTo(5, 0);
+    ctx.moveTo(0, -5); ctx.lineTo(0, 5);
+    ctx.stroke();
+    ctx.strokeRect(-4, -4, 8, 8);
+  }
+
+  // Selection Bounding Box, 8 Resize Handles & Top Rotation Handle
+  if (isSel && b.shape !== 'point') {
+    const hw = (b.shape === 'circle' ? b.radius : b.width / 2) * state.view.zoom;
+    const hh = (b.shape === 'circle' ? b.radius : b.height / 2) * state.view.zoom;
+
+    ctx.strokeStyle = '#000080';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([2, 2]);
+    ctx.strokeRect(-hw, -hh, hw * 2, hh * 2);
+    ctx.setLineDash([]);
+
+    // Rotation stem
+    ctx.beginPath();
+    ctx.moveTo(0, -hh);
+    ctx.lineTo(0, -hh - 22);
+    ctx.stroke();
+
+    // Rotation knob
+    ctx.fillStyle = '#00cc66';
+    ctx.beginPath();
+    ctx.arc(0, -hh - 22, 4.5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+
+    // 8 Resize squares
+    ctx.fillStyle = '#ffffff';
+    ctx.strokeStyle = '#000000';
+    [
+      [-hw, -hh], [0, -hh], [hw, -hh],
+      [hw, 0], [hw, hh], [0, hh],
+      [-hw, hh], [-hw, 0]
+    ].forEach(([hx, hy]) => {
+      ctx.fillRect(hx - 3.5, hy - 3.5, 7, 7);
+      ctx.strokeRect(hx - 3.5, hy - 3.5, 7, 7);
+    });
+  }
+
+  ctx.restore();
+}
+
+function drawConstraint(c) {
+  const b1 = state.bodies.find(b => b.id === c.b1);
+  if (!b1) return;
+  const r1 = rotateVec(c.off1x || 0, c.off1y || 0, b1.angle);
+  const p1 = worldToScreen(b1.x + r1.x, b1.y + r1.y);
+  const b2 = c.b2 ? state.bodies.find(b => b.id === c.b2) : null;
+  const r2 = b2 ? rotateVec(c.off2x || 0, c.off2y || 0, b2.angle) : { x: 0, y: 0 };
+  const p2 = b2 ? worldToScreen(b2.x + r2.x, b2.y + r2.y) : worldToScreen(c.wx, c.wy);
+  const isSel = state.selected?.type === 'constraint' && state.selected.id === c.id;
+
+  ctx.save();
+  ctx.strokeStyle = isSel ? '#0000ff' : '#333';
+  ctx.lineWidth = isSel ? 2.5 : 1.5;
+
+  if (c.type === 'pin') {
+    ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.arc(p1.x, p1.y, 4.5, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+  } else if (c.type === 'rod') {
+    ctx.beginPath(); ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.stroke();
+    ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.arc(p1.x, p1.y, 3.5, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.arc(p2.x, p2.y, 3.5, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+  } else if (c.type === 'rope') {
+    ctx.setLineDash([4, 3]);
+    ctx.beginPath(); ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.stroke();
+  } else if (c.type === 'spring') {
+    const dx = p2.x - p1.x;
+    const dy = p2.y - p1.y;
+    const len = Math.hypot(dx, dy);
+    const ang = Math.atan2(dy, dx);
+    ctx.translate(p1.x, p1.y);
+    ctx.rotate(ang);
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    const coils = 10;
+    for (let i = 1; i < coils; i++) {
+      const x = (i / coils) * len;
+      const y = (i % 2 === 0 ? -6 : 6);
+      ctx.lineTo(x, y);
+    }
+    ctx.lineTo(len, 0);
+    ctx.stroke();
+  } else if (c.type === 'motor') {
+    ctx.fillStyle = '#eee';
+    ctx.beginPath(); ctx.arc(p1.x, p1.y, 8, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#000';
+    ctx.font = 'bold 9px Tahoma';
+    ctx.fillText('M', p1.x - 4, p1.y + 3);
+  }
+  ctx.restore();
+}
+
+function drawForce(f) {
+  const b = state.bodies.find(item => item.id === f.bodyId);
+  if (!b) return;
+  const r = rotateVec(f.offsetX, f.offsetY, b.angle);
+  const start = worldToScreen(b.x + r.x, b.y + r.y);
+  const scale = 6;
+  const endX = start.x + f.fx * scale;
+  const endY = start.y - f.fy * scale;
+  const isSel = state.selected && state.selected.type === 'force' && state.selected.id === f.id;
+  drawArrow(start.x, start.y, endX, endY, isSel ? '#0000ff' : f.color, `F[${f.id}] (${formatNum(f.mag)}N)`);
+
+  if (isSel) {
+    ctx.save();
+    ctx.fillStyle = '#ffff00';
+    ctx.strokeStyle = '#000';
+    ctx.beginPath();
+    ctx.arc(endX, endY, 4.5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
+  }
+}
+
+function drawArrow(x1, y1, x2, y2, color, label) {
+  const ang = Math.atan2(y2 - y1, x2 - x1);
+  const headLen = 10;
+  ctx.save();
+  ctx.strokeStyle = color;
+  ctx.fillStyle = color;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(x1, y1);
+  ctx.lineTo(x2, y2);
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.moveTo(x2, y2);
+  ctx.lineTo(x2 - headLen * Math.cos(ang - Math.PI / 6), y2 - headLen * Math.sin(ang - Math.PI / 6));
+  ctx.lineTo(x2 - headLen * Math.cos(ang + Math.PI / 6), y2 - headLen * Math.sin(ang + Math.PI / 6));
+  ctx.closePath();
+  ctx.fill();
+
+  if (label) {
+    ctx.font = 'bold 10px Tahoma';
+    ctx.fillText(label, x2 + 6, y2 - 4);
+  }
+  ctx.restore();
+}
+
+// --- UNIFIED POINTER INTERACTION (SELECT, RESIZE, ROTATE, FORCE DRAG, DRAW) ---
+let activeAction = null; // { mode: 'moveBody'|'resize'|'rotate'|'dragForceTip'|'moveText'|'pan', ... }
+let dragDraw = null;
+let polyPoints = [];
+
+function getCanvasPointFromClient(clientX, clientY) {
+  const rect = canvas.getBoundingClientRect();
+  const sx = clientX - rect.left;
+  const sy = clientY - rect.top;
+  return { sx, sy, wPos: screenToWorld(sx, sy) };
+}
+
+function hitTestHandles(sx, sy) {
+  if (!state.selected) return null;
+  if (state.selected.type === 'body') {
+    const b = state.bodies.find(item => item.id === state.selected.id);
+    if (!b || b.shape === 'point') return null;
+    const handles = getBodyHandlesScreen(b);
+    for (let h of handles) {
+      if (Math.hypot(sx - h.x, sy - h.y) <= 8) {
+        return { kind: h.id === 'rot' ? 'rotate' : 'resize', handleId: h.id, body: b };
+      }
+    }
+  } else if (state.selected.type === 'force') {
+    const f = state.forces.find(item => item.id === state.selected.id);
+    const b = f ? state.bodies.find(item => item.id === f.bodyId) : null;
+    if (f && b) {
+      const r = rotateVec(f.offsetX, f.offsetY, b.angle);
+      const start = worldToScreen(b.x + r.x, b.y + r.y);
+      const endX = start.x + f.fx * 6;
+      const endY = start.y - f.fy * 6;
+      if (Math.hypot(sx - endX, sy - endY) <= 10) {
+        return { kind: 'dragForceTip', force: f, body: b };
+      }
+    }
+  }
+  return null;
+}
+
+function handlePointerDown(clientX, clientY, button = 0) {
+  closeAllMenus();
+  hideContextMenu();
+  const { sx, sy, wPos } = getCanvasPointFromClient(clientX, clientY);
+  const snapped = applySnap(wPos);
+
+  if (state.tool === 'select') {
+    // 1. Check active selection handles first (Resize, Rotate, Force Tip)
+    const handleHit = hitTestHandles(sx, sy);
+    if (handleHit && button === 0) {
+      saveUndoSnapshot();
+      if (handleHit.kind === 'rotate') {
+        activeAction = { mode: 'rotate', body: handleHit.body };
+      } else if (handleHit.kind === 'resize') {
+        activeAction = {
+          mode: 'resize',
+          handleId: handleHit.handleId,
+          body: handleHit.body,
+          origW: handleHit.body.width,
+          origH: handleHit.body.height,
+          origR: handleHit.body.radius
+        };
+      } else if (handleHit.kind === 'dragForceTip') {
+        activeAction = { mode: 'dragForceTip', force: handleHit.force, body: handleHit.body };
+      }
+      return;
+    }
+
+    // 2. Hit test all canvas elements
+    const hit = hitTest(sx, sy, wPos);
+    state.selected = hit;
+    renderPropertiesWindow();
+    renderAppearanceWindow();
+    renderGeometryWindow();
+
+    if (button === 2) {
+      render();
+      showContextMenu(clientX, clientY, hit, wPos);
+      return;
+    }
+
+    if (hit && hit.type === 'body') {
+      const b = state.bodies.find(item => item.id === hit.id);
+      if (b) {
+        saveUndoSnapshot();
+        activeAction = { mode: 'moveBody', body: b, offX: wPos.x - b.x, offY: wPos.y - b.y };
+      }
+    } else if (hit && hit.type === 'text') {
+      const t = state.texts.find(item => item.id === hit.id);
+      if (t) {
+        saveUndoSnapshot();
+        activeAction = { mode: 'moveText', textObj: t, offX: wPos.x - t.x, offY: wPos.y - t.y };
+      }
+    } else if (!hit) {
+      activeAction = { mode: 'pan', startSx: sx - state.view.panX, startSy: sy - state.view.panY };
+    }
+    render();
+  } else if (state.tool === 'zoom') {
+    zoomCanvas(1.25);
+  } else if (state.tool === 'text') {
+    openPromptModal('Text Annotation', 'Enter label text:', 'Label', (txt) => {
+      if (txt) {
+        saveUndoSnapshot();
+        const t = { id: nextId.text++, x: snapped.x, y: snapped.y, text: txt };
+        state.texts.push(t);
+        selectObject('text', t.id);
+        setTool('select');
+      }
+    });
+  } else if (state.tool === 'point') {
+    saveUndoSnapshot();
+    const b = createBody({ shape: 'point', x: snapped.x, y: snapped.y, mass: 0.01 });
+    selectObject('body', b.id);
+    setTool('select');
+  } else if (state.tool === 'anchor') {
+    const hit = hitTest(sx, sy, wPos);
+    if (hit && hit.type === 'body') {
+      saveUndoSnapshot();
+      const b = state.bodies.find(item => item.id === hit.id);
+      if (b) {
+        b.anchored = !b.anchored;
+        b.color = b.anchored ? '#c0c0c0' : '#99ccff';
+        renderPropertiesWindow();
+        render();
+      }
+    }
+    setTool('select');
+  } else if (['circle', 'rect', 'square', 'force', 'spring', 'rod', 'rope'].includes(state.tool)) {
+    dragDraw = { tool: state.tool, x1: snapped.x, y1: snapped.y, x2: snapped.x, y2: snapped.y };
+  } else if (state.tool === 'polygon') {
+    polyPoints.push({ x: snapped.x, y: snapped.y });
+    render();
+  } else if (state.tool === 'pin' || state.tool === 'motor') {
+    const hit = hitTest(sx, sy, wPos);
+    if (hit && hit.type === 'body') {
+      saveUndoSnapshot();
+      const b = state.bodies.find(item => item.id === hit.id);
+      if (b) {
+        const localOff = rotateVec(wPos.x - b.x, wPos.y - b.y, -b.angle);
+        const c = {
+          id: nextId.constraint++,
+          type: state.tool,
+          b1: b.id,
+          off1x: localOff.x,
+          off1y: localOff.y,
+          wx: wPos.x,
+          wy: wPos.y,
+          speed: 2.0
+        };
+        state.constraints.push(c);
+        selectObject('constraint', c.id);
+        setTool('select');
+      }
+    }
+  } else if (state.tool === 'rotate') {
+    const hit = hitTest(sx, sy, wPos);
+    if (hit && hit.type === 'body') {
+      saveUndoSnapshot();
+      const b = state.bodies.find(item => item.id === hit.id);
+      selectObject('body', hit.id);
+      activeAction = { mode: 'rotate', body: b };
+    }
+  }
+}
+
+function handlePointerMove(clientX, clientY) {
+  const { sx, sy, wPos } = getCanvasPointFromClient(clientX, clientY);
+  const snapped = applySnap(wPos);
+  document.getElementById('status-coords').textContent =
+    `X: ${formatNum(wPos.x)} m  Y: ${formatNum(wPos.y)} m`;
+
+  if (activeAction) {
+    if (activeAction.mode === 'pan') {
+      state.view.panX = sx - activeAction.startSx;
+      state.view.panY = sy - activeAction.startSy;
+    } else if (activeAction.mode === 'moveBody') {
+      const target = applySnap({ x: wPos.x - activeAction.offX, y: wPos.y - activeAction.offY });
+      activeAction.body.x = target.x;
+      activeAction.body.y = target.y;
+      renderPropertiesWindow();
+    } else if (activeAction.mode === 'moveText') {
+      const target = applySnap({ x: wPos.x - activeAction.offX, y: wPos.y - activeAction.offY });
+      activeAction.textObj.x = target.x;
+      activeAction.textObj.y = target.y;
+    } else if (activeAction.mode === 'rotate') {
+      const b = activeAction.body;
+      b.angle = Math.atan2(wPos.y - b.y, wPos.x - b.x) - Math.PI / 2;
+      renderPropertiesWindow();
+    } else if (activeAction.mode === 'resize') {
+      const b = activeAction.body;
+      const local = rotateVec(wPos.x - b.x, wPos.y - b.y, -b.angle);
+      if (b.shape === 'circle') {
+        b.radius = Math.max(0.15, Math.hypot(local.x, local.y));
+      } else {
+        const hid = activeAction.handleId;
+        if (hid.includes('e') || hid.includes('w')) b.width = Math.max(0.2, Math.abs(local.x) * 2);
+        if (hid.includes('n') || hid.includes('s')) b.height = Math.max(0.2, Math.abs(local.y) * 2);
+      }
+      renderGeometryWindow();
+    } else if (activeAction.mode === 'dragForceTip') {
+      const f = activeAction.force;
+      const b = activeAction.body;
+      const r = rotateVec(f.offsetX, f.offsetY, b.angle);
+      const start = worldToScreen(b.x + r.x, b.y + r.y);
+      const fxNew = (sx - start.x) / 6;
+      const fyNew = (start.y - sy) / 6;
+      f.fxFormula = null;
+      f.fyFormula = null;
+      f.magFormula = null;
+      f.dirFormula = null;
+      f.fx = fxNew;
+      f.fy = fyNew;
+      f.mag = Math.hypot(fxNew, fyNew);
+      f.dir = Math.atan2(fyNew, fxNew);
+      renderPropertiesWindow();
+    }
+    render();
+    return;
+  }
+
+  if (dragDraw) {
+    dragDraw.x2 = snapped.x;
+    dragDraw.y2 = snapped.y;
+    render();
+    return;
+  }
+
+  // Dynamic hover cursor feedback
+  if (state.tool === 'select') {
+    const hHandle = hitTestHandles(sx, sy);
+    if (hHandle) {
+      canvas.style.cursor = hHandle.kind === 'rotate' ? 'grab' : 'nwse-resize';
+      return;
+    }
+    const hit = hitTest(sx, sy, wPos);
+    state.hovered = hit;
+    canvas.style.cursor = hit ? 'move' : 'default';
+  } else {
+    canvas.style.cursor = 'crosshair';
+  }
+}
+
+function handlePointerUp() {
+  if (activeAction) {
+    activeAction = null;
+  }
+  if (dragDraw) {
+    finishDragDraw();
+    dragDraw = null;
+    render();
+  }
+}
+
+canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+canvas.addEventListener('mousedown', (e) => handlePointerDown(e.clientX, e.clientY, e.button));
+window.addEventListener('mousemove', (e) => {
+  if (activeAction || dragDraw) {
+    handlePointerMove(e.clientX, e.clientY);
+  } else if (e.target === canvas) {
+    handlePointerMove(e.clientX, e.clientY);
+  }
+});
+window.addEventListener('mouseup', () => handlePointerUp());
+
+canvas.addEventListener('touchstart', (e) => {
+  if (e.touches.length > 0) {
+    e.preventDefault();
+    handlePointerDown(e.touches[0].clientX, e.touches[0].clientY, 0);
+  }
+}, { passive: false });
+
+canvas.addEventListener('touchmove', (e) => {
+  if (e.touches.length > 0) {
+    e.preventDefault();
+    handlePointerMove(e.touches[0].clientX, e.touches[0].clientY);
+  }
+}, { passive: false });
+
+canvas.addEventListener('touchend', (e) => {
+  e.preventDefault();
+  handlePointerUp();
+}, { passive: false });
+
+canvas.addEventListener('dblclick', () => {
+  if (state.tool === 'polygon' && polyPoints.length >= 3) {
+    saveUndoSnapshot();
+    const cx = polyPoints.reduce((s, p) => s + p.x, 0) / polyPoints.length;
+    const cy = polyPoints.reduce((s, p) => s + p.y, 0) / polyPoints.length;
+    const localPts = polyPoints.map(p => ({ x: p.x - cx, y: p.y - cy }));
+    const b = createBody({ shape: 'polygon', x: cx, y: cy, points: localPts, width: 1.5, height: 1.5 });
+    polyPoints = [];
+    selectObject('body', b.id);
+    setTool('select');
+    render();
+  } else if (state.selected) {
+    openFloatingWin('win-properties');
+  }
+});
+
+function drawPolygonInProgress() {
+  ctx.save();
+  ctx.strokeStyle = '#0000ff';
+  ctx.fillStyle = '#0000ff';
+  ctx.beginPath();
+  polyPoints.forEach((pt, idx) => {
+    const sp = worldToScreen(pt.x, pt.y);
+    if (idx === 0) ctx.moveTo(sp.x, sp.y);
+    else ctx.lineTo(sp.x, sp.y);
+    ctx.fillRect(sp.x - 3, sp.y - 3, 6, 6);
+  });
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawCreationPreview() {
+  const p1 = worldToScreen(dragDraw.x1, dragDraw.y1);
+  const p2 = worldToScreen(dragDraw.x2, dragDraw.y2);
+  const dx = dragDraw.x2 - dragDraw.x1;
+  const dy = dragDraw.y2 - dragDraw.y1;
+  const dist = Math.hypot(dx, dy);
+
+  ctx.save();
+  ctx.strokeStyle = '#0000ff';
+  ctx.fillStyle = '#000080';
+  ctx.font = 'bold 10px Tahoma';
+  ctx.setLineDash([3, 3]);
+
+  let label = '';
+  if (dragDraw.tool === 'circle') {
+    const r = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+    ctx.beginPath(); ctx.arc(p1.x, p1.y, r, 0, Math.PI * 2); ctx.stroke();
+    label = `R: ${dist.toFixed(2)} m`;
+  } else if (dragDraw.tool === 'rect' || dragDraw.tool === 'square') {
+    const w = p2.x - p1.x;
+    const h = dragDraw.tool === 'square' ? Math.sign(p2.y - p1.y || 1) * Math.abs(w) : (p2.y - p1.y);
+    ctx.strokeRect(p1.x, p1.y, w, h);
+    label = `W: ${Math.abs(dx).toFixed(2)}m, H: ${(dragDraw.tool === 'square' ? Math.abs(dx) : Math.abs(dy)).toFixed(2)}m`;
+  } else if (dragDraw.tool === 'force') {
+    ctx.beginPath(); ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.stroke();
+    const fMag = dist > 0.1 ? dist * 5 : 10;
+    const deg = ((Math.atan2(dy, dx) * 180 / Math.PI) + 360) % 360;
+    label = `F: ${fMag.toFixed(1)} N, θ: ${deg.toFixed(0)}°`;
+  } else {
+    ctx.beginPath(); ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.stroke();
+    label = `L: ${dist.toFixed(2)} m`;
+  }
+
+  if (label) {
+    ctx.fillText(label, p2.x + 8, p2.y - 6);
+  }
+  ctx.restore();
+}
+
+function finishDragDraw() {
+  const { tool, x1, y1, x2, y2 } = dragDraw;
+  const dx = x2 - x1;
+  const dy = y2 - y1;
+  const dist = Math.hypot(dx, dy);
+
+  if (tool === 'circle') {
+    saveUndoSnapshot();
+    const b = createBody({ shape: 'circle', x: x1, y: y1, radius: Math.max(0.25, dist) });
+    selectObject('body', b.id);
+  } else if (tool === 'rect' || tool === 'square') {
+    saveUndoSnapshot();
+    const w = Math.max(0.35, Math.abs(dx));
+    const h = tool === 'square' ? w : Math.max(0.35, Math.abs(dy));
+    const b = createBody({ shape: 'rect', x: (x1 + x2) / 2, y: (y1 + y2) / 2, width: w, height: h });
+    selectObject('body', b.id);
+  } else if (tool === 'force') {
+    const s1 = worldToScreen(x1, y1);
+    const hit = hitTest(s1.x, s1.y, { x: x1, y: y1 });
+    if (hit && hit.type === 'body') {
+      saveUndoSnapshot();
+      const b = state.bodies.find(item => item.id === hit.id);
+      const localOff = rotateVec(x1 - b.x, y1 - b.y, -b.angle);
+      const fx = dist > 0.1 ? dx * 5 : 10;
+      const fy = dist > 0.1 ? dy * 5 : 0;
+      const f = createForce({ bodyId: b.id, offsetX: localOff.x, offsetY: localOff.y, fx, fy });
+      selectObject('force', f.id);
+    } else {
+      setStatus('Drag starting on a body to attach a Force vector.');
+    }
+  } else if (['spring', 'rod', 'rope'].includes(tool)) {
+    const s1 = worldToScreen(x1, y1);
+    const s2 = worldToScreen(x2, y2);
+    const h1 = hitTest(s1.x, s1.y, { x: x1, y: y1 });
+    const h2 = hitTest(s2.x, s2.y, { x: x2, y: y2 });
+    if (h1 && h1.type === 'body') {
+      saveUndoSnapshot();
+      const b1 = state.bodies.find(b => b.id === h1.id);
+      const b2 = (h2 && h2.type === 'body' && h2.id !== b1.id) ? state.bodies.find(b => b.id === h2.id) : null;
+      const off1 = rotateVec(x1 - b1.x, y1 - b1.y, -b1.angle);
+      const off2 = b2 ? rotateVec(x2 - b2.x, y2 - b2.y, -b2.angle) : { x: 0, y: 0 };
+      const c = {
+        id: nextId.constraint++,
+        type: tool,
+        b1: b1.id,
+        off1x: off1.x,
+        off1y: off1.y,
+        b2: b2 ? b2.id : null,
+        off2x: off2.x,
+        off2y: off2.y,
+        wx: x2,
+        wy: y2,
+        restLength: Math.max(0.25, dist),
+        stiffness: 30
+      };
+      state.constraints.push(c);
+      selectObject('constraint', c.id);
+    }
+  }
+  setTool('select');
+}
+
+function hitTest(sx, sy, wPos) {
+  // 1. Check Forces
+  for (let i = state.forces.length - 1; i >= 0; i--) {
+    const f = state.forces[i];
+    const b = state.bodies.find(item => item.id === f.bodyId);
+    if (!b) continue;
+    const r = rotateVec(f.offsetX, f.offsetY, b.angle);
+    const p1 = worldToScreen(b.x + r.x, b.y + r.y);
+    const p2 = { x: p1.x + f.fx * 6, y: p1.y - f.fy * 6 };
+    if (distToSegment(sx, sy, p1.x, p1.y, p2.x, p2.y) < 11) {
+      return { type: 'force', id: f.id };
+    }
+  }
+
+  // 2. Check Constraints
+  for (let i = state.constraints.length - 1; i >= 0; i--) {
+    const c = state.constraints[i];
+    const b1 = state.bodies.find(b => b.id === c.b1);
+    if (!b1) continue;
+    const r1 = rotateVec(c.off1x || 0, c.off1y || 0, b1.angle);
+    const p1 = worldToScreen(b1.x + r1.x, b1.y + r1.y);
+    if (c.type === 'pin' || c.type === 'motor') {
+      if (Math.hypot(sx - p1.x, sy - p1.y) < 10) return { type: 'constraint', id: c.id };
+    } else {
+      const b2 = c.b2 ? state.bodies.find(b => b.id === c.b2) : null;
+      const r2 = b2 ? rotateVec(c.off2x || 0, c.off2y || 0, b2.angle) : { x: 0, y: 0 };
+      const p2 = b2 ? worldToScreen(b2.x + r2.x, b2.y + r2.y) : worldToScreen(c.wx, c.wy);
+      if (distToSegment(sx, sy, p1.x, p1.y, p2.x, p2.y) < 9) return { type: 'constraint', id: c.id };
+    }
+  }
+
+  // 3. Check Texts
+  for (let i = state.texts.length - 1; i >= 0; i--) {
+    const t = state.texts[i];
+    const sp = worldToScreen(t.x, t.y);
+    if (sx >= sp.x - 4 && sx <= sp.x + 70 && sy >= sp.y - 14 && sy <= sp.y + 4) {
+      return { type: 'text', id: t.id };
+    }
+  }
+
+  // 4. Check Bodies (rotated local frame)
+  for (let i = state.bodies.length - 1; i >= 0; i--) {
+    const b = state.bodies[i];
+    if (!b.visible) continue;
+    const local = rotateVec(wPos.x - b.x, wPos.y - b.y, -b.angle);
+    if (b.shape === 'circle') {
+      if (Math.hypot(local.x, local.y) <= b.radius) return { type: 'body', id: b.id };
+    } else if (b.shape === 'point') {
+      if (Math.hypot(local.x, local.y) <= 0.28) return { type: 'body', id: b.id };
+    } else {
+      if (Math.abs(local.x) <= b.width / 2 && Math.abs(local.y) <= b.height / 2) {
+        return { type: 'body', id: b.id };
+      }
+    }
+  }
+  return null;
+}
+
+function distToSegment(px, py, x1, y1, x2, y2) {
+  const l2 = (x2 - x1) ** 2 + (y2 - y1) ** 2;
+  if (l2 === 0) return Math.hypot(px - x1, py - y1);
+  let t = ((px - x1) * (x2 - x1) + (py - y1) * (y2 - y1)) / l2;
+  t = Math.max(0, Math.min(1, t));
+  return Math.hypot(px - (x1 + t * (x2 - x1)), py - (y1 + t * (y2 - y1)));
+}
+
+function selectObject(type, id) {
+  state.selected = { type, id };
+  renderPropertiesWindow();
+  renderAppearanceWindow();
+  renderGeometryWindow();
+  render();
+}
+
+// --- CONTEXT MENU (RIGHT-CLICK ON CANVAS OR OBJECT) ---
+function showContextMenu(clientX, clientY, hit, wPos) {
+  const cm = document.getElementById('context-menu');
+  if (hit && hit.type === 'body') {
+    const b = state.bodies.find(x => x.id === hit.id);
+    cm.innerHTML = `
+      <div class="dd-item" onclick="hideContextMenu(); openFloatingWin('win-properties')"><b>Properties...</b></div>
+      <div class="dd-item" onclick="hideContextMenu(); openFloatingWin('win-appearance')">Appearance...</div>
+      <div class="dd-item" onclick="hideContextMenu(); openFloatingWin('win-geometry')">Geometry...</div>
+      <div class="dd-sep"></div>
+      <div class="dd-item" onclick="hideContextMenu(); attachDefaultForceToBody(${b.id})">Attach Force Vector</div>
+      <div class="dd-item" onclick="hideContextMenu(); cmdAnchorSelected()">${b.anchored ? 'Unanchor Body' : 'Anchor Body'}</div>
+      <div class="dd-item" onclick="hideContextMenu(); cmdDuplicate()">Duplicate</div>
+      <div class="dd-sep"></div>
+      <div class="dd-item" onclick="hideContextMenu(); createMeasure('Position', 'Graph')">Measure Position</div>
+      <div class="dd-item" onclick="hideContextMenu(); createMeasure('Velocity', 'Graph')">Measure Velocity</div>
+      <div class="dd-item" onclick="hideContextMenu(); createMeasure('KineticEnergy', 'Graph')">Measure Kinetic Energy</div>
+      <div class="dd-sep"></div>
+      <div class="dd-item" style="color:#b00;" onclick="hideContextMenu(); cmdDelete()">Delete ${b.name}</div>
+    `;
+  } else if (hit) {
+    cm.innerHTML = `
+      <div class="dd-item" onclick="hideContextMenu(); openFloatingWin('win-properties')"><b>Properties...</b></div>
+      <div class="dd-sep"></div>
+      <div class="dd-item" style="color:#b00;" onclick="hideContextMenu(); cmdDelete()">Delete Element</div>
+    `;
+  } else {
+    cm.innerHTML = `
+      <div class="dd-item" onclick="hideContextMenu(); quickCreateAt('circle', ${wPos.x}, ${wPos.y})">Add Circle Here</div>
+      <div class="dd-item" onclick="hideContextMenu(); quickCreateAt('rect', ${wPos.x}, ${wPos.y})">Add Rectangle Here</div>
+      <div class="dd-sep"></div>
+      <div class="dd-item" onclick="hideContextMenu(); toggleViewFlag('grid')">Toggle Grid</div>
+      <div class="dd-item" onclick="hideContextMenu(); toggleViewFlag('snap')">Toggle Snap to Grid</div>
+      <div class="dd-item" onclick="hideContextMenu(); zoomToFit()">Zoom to Fit</div>
+    `;
+  }
+
+  cm.style.display = 'block';
+  const left = Math.min(window.innerWidth - 185, clientX);
+  const top = Math.min(window.innerHeight - 240, clientY);
+  cm.style.left = Math.max(4, left) + 'px';
+  cm.style.top = Math.max(4, top) + 'px';
+}
+
+function hideContextMenu() {
+  document.getElementById('context-menu').style.display = 'none';
+}
+
+function attachDefaultForceToBody(bodyId) {
+  saveUndoSnapshot();
+  const f = createForce({ bodyId, fx: 10, fy: 0 });
+  selectObject('force', f.id);
+  openFloatingWin('win-properties');
+}
+
+function quickCreateAt(shape, x, y) {
+  saveUndoSnapshot();
+  const b = shape === 'circle'
+    ? createBody({ shape: 'circle', x, y, radius: 0.5 })
+    : createBody({ shape: 'rect', x, y, width: 1.2, height: 0.8 });
+  selectObject('body', b.id);
+}
+
+// --- PROPERTIES, APPEARANCE & GEOMETRY WINDOWS ---
+function renderPropertiesWindow() {
+  const titleEl = document.getElementById('prop-win-title');
+  const bodyEl = document.getElementById('prop-win-body');
+
+  if (!state.selected) {
+    titleEl.textContent = 'Properties - No Selection';
+    bodyEl.innerHTML = '<div style="color:#555; padding:10px 0; text-align:center;">Select any body, force, constraint, or meter to edit its properties.</div>';
+    return;
+  }
+
+  if (state.selected.type === 'body') {
+    const b = state.bodies.find(item => item.id === state.selected.id);
+    if (!b) return;
+    const degAngle = ((b.angle * 180 / Math.PI) % 360).toFixed(1);
+    titleEl.textContent = `Properties - ${b.name} (${b.shape})`;
+    bodyEl.innerHTML = `
+      <div class="prop-row"><label>Mass (kg):</label><input class="prop-input" id="p-mass" value="${b.massFormula || b.mass}"></div>
+      <div class="prop-row"><label>Position X (m):</label><input class="prop-input" id="p-x" value="${formatNum(b.x)}"></div>
+      <div class="prop-row"><label>Position Y (m):</label><input class="prop-input" id="p-y" value="${formatNum(b.y)}"></div>
+      <div class="prop-row"><label>Angle (deg):</label><input class="prop-input" id="p-ang" value="${degAngle}"></div>
+      <div class="prop-row"><label>Velocity Vx (m/s):</label><input class="prop-input" id="p-vx" value="${b.vxFormula || formatNum(b.vx)}"></div>
+      <div class="prop-row"><label>Velocity Vy (m/s):</label><input class="prop-input" id="p-vy" value="${b.vyFormula || formatNum(b.vy)}"></div>
+      <div class="prop-row"><label>Static Friction:</label><input class="prop-input" id="p-sf" value="${b.staticFriction}"></div>
+      <div class="prop-row"><label>Kinetic Friction:</label><input class="prop-input" id="p-kf" value="${b.kineticFriction}"></div>
+      <div class="prop-row"><label>Elasticity:</label><input class="prop-input" id="p-el" value="${b.elasticity}"></div>
+      <div class="prop-row"><label>Anchored (Fixed):</label><input type="checkbox" id="p-anc" ${b.anchored ? 'checked' : ''}></div>
+      <div style="margin-top:8px; display:flex; justify-content:space-between;">
+        <button class="win-action-btn" style="color:#b00;" onclick="cmdDelete()">Delete</button>
+        <button class="win-action-btn" onclick="applyBodyProps(${b.id})">Apply</button>
+      </div>
+    `;
+  } else if (state.selected.type === 'force') {
+    const f = state.forces.find(item => item.id === state.selected.id);
+    if (!f) return;
+    titleEl.textContent = `Properties - ${f.name}`;
+    if (!f.isPolar) {
+      bodyEl.innerHTML = `
+        <div class="prop-row"><label>Coordinate Mode:</label>
+          <select class="prop-input" id="f-mode" onchange="toggleForcePolar(${f.id}, this.value)">
+            <option value="cart" selected>Cartesian (Fx, Fy)</option>
+            <option value="polar">Polar (Mag, Dir)</option>
+          </select>
+        </div>
+        <div class="prop-row"><label>Fx (N):</label><input class="prop-input" id="f-fx" value="${f.fxFormula || formatNum(f.fx)}"></div>
+        <div class="prop-row"><label>Fy (N):</label><input class="prop-input" id="f-fy" value="${f.fyFormula || formatNum(f.fy)}"></div>
+        <div style="margin-top:8px; display:flex; justify-content:space-between;">
+          <button class="win-action-btn" style="color:#b00;" onclick="cmdDelete()">Delete</button>
+          <button class="win-action-btn" onclick="applyForceProps(${f.id})">Apply</button>
+        </div>
+      `;
+    } else {
+      bodyEl.innerHTML = `
+        <div class="prop-row"><label>Coordinate Mode:</label>
+          <select class="prop-input" id="f-mode" onchange="toggleForcePolar(${f.id}, this.value)">
+            <option value="cart">Cartesian (Fx, Fy)</option>
+            <option value="polar" selected>Polar (Mag, Dir)</option>
+          </select>
+        </div>
+        <div class="prop-row"><label>Magnitude (N):</label><input class="prop-input" id="f-mag" value="${f.magFormula || formatNum(f.mag)}"></div>
+        <div class="prop-row"><label>Direction (rad):</label><input class="prop-input" id="f-dir" value="${f.dirFormula || formatNum(f.dir)}"></div>
+        <div style="font-size:10px; color:#444; margin-bottom:4px;">Tip: Use <code>Input[2]*pi/180</code> for degrees</div>
+        <div style="margin-top:8px; display:flex; justify-content:space-between;">
+          <button class="win-action-btn" style="color:#b00;" onclick="cmdDelete()">Delete</button>
+          <button class="win-action-btn" onclick="applyForceProps(${f.id})">Apply</button>
+        </div>
+      `;
+    }
+  } else if (state.selected.type === 'constraint') {
+    const c = state.constraints.find(item => item.id === state.selected.id);
+    if (!c) return;
+    titleEl.textContent = `Properties - ${c.type.toUpperCase()} [${c.id}]`;
+    bodyEl.innerHTML = `
+      ${c.type === 'spring' ? `
+        <div class="prop-row"><label>Stiffness k (N/m):</label><input class="prop-input" id="c-k" value="${c.stiffness || 30}"></div>
+        <div class="prop-row"><label>Rest Length (m):</label><input class="prop-input" id="c-len" value="${formatNum(c.restLength)}"></div>
+      ` : ''}
+      ${c.type === 'motor' ? `
+        <div class="prop-row"><label>Speed (rad/s):</label><input class="prop-input" id="c-spd" value="${c.speed || 2}"></div>
+      ` : ''}
+      <div style="margin-top:8px; display:flex; justify-content:space-between;">
+        <button class="win-action-btn" style="color:#b00;" onclick="cmdDelete()">Delete</button>
+        <button class="win-action-btn" onclick="applyConstraintProps(${c.id})">Apply</button>
+      </div>
+    `;
+  } else if (state.selected.type === 'meter') {
+    const m = state.meters.find(item => item.id === state.selected.id);
+    if (!m) return;
+    titleEl.textContent = `Properties - Measure Box [${m.id}]`;
+    bodyEl.innerHTML = `
+      <div class="prop-row"><label>Display Mode:</label>
+        <select class="prop-input" id="m-mode">
+          <option value="Graph" ${m.display === 'Graph' ? 'selected' : ''}>Graph</option>
+          <option value="Meter" ${m.display === 'Meter' ? 'selected' : ''}>Digital Meter</option>
+        </select>
+      </div>
+      <div class="prop-row"><label>y1 Label:</label><input class="prop-input" id="m-y1-lbl" value="${m.y1Label}"></div>
+      <div class="prop-row"><label>y1 Formula:</label><input class="prop-input" id="m-y1-eq" value="${m.y1Formula}"></div>
+      <div class="prop-row"><label>y2 Label:</label><input class="prop-input" id="m-y2-lbl" value="${m.y2Label || ''}"></div>
+      <div class="prop-row"><label>y2 Formula:</label><input class="prop-input" id="m-y2-eq" value="${m.y2Formula || ''}"></div>
+      <div style="margin-top:8px; display:flex; justify-content:space-between;">
+        <button class="win-action-btn" style="color:#b00;" onclick="cmdDelete()">Delete</button>
+        <button class="win-action-btn" onclick="applyMeterProps(${m.id})">Apply</button>
+      </div>
+    `;
+  } else if (state.selected.type === 'text') {
+    const t = state.texts.find(item => item.id === state.selected.id);
+    if (!t) return;
+    titleEl.textContent = `Properties - Text [${t.id}]`;
+    bodyEl.innerHTML = `
+      <div class="prop-row"><label>Text:</label><input class="prop-input" id="t-val" value="${t.text}"></div>
+      <div style="margin-top:8px; display:flex; justify-content:space-between;">
+        <button class="win-action-btn" style="color:#b00;" onclick="cmdDelete()">Delete</button>
+        <button class="win-action-btn" onclick="state.texts.find(x=>x.id===${t.id}).text=document.getElementById('t-val').value; render();">Apply</button>
+      </div>
+    `;
+  }
+}
+
+function applyConstraintProps(id) {
+  const c = state.constraints.find(item => item.id === id);
+  if (!c) return;
+  if (c.type === 'spring') {
+    c.stiffness = parseFloat(document.getElementById('c-k').value) || 30;
+    c.restLength = Math.max(0.1, parseFloat(document.getElementById('c-len').value) || 1);
+  } else if (c.type === 'motor') {
+    c.speed = parseFloat(document.getElementById('c-spd').value) || 0;
+  }
+  render();
+}
+
+function applyBodyProps(id) {
+  const b = state.bodies.find(item => item.id === id);
+  if (!b) return;
+  saveUndoSnapshot();
+  const mVal = document.getElementById('p-mass').value.trim();
+  if (isNaN(Number(mVal))) { b.massFormula = mVal; b.mass = Math.max(0.01, evaluateFormula(mVal)); }
+  else { b.massFormula = null; b.mass = Math.max(0.01, parseFloat(mVal) || 1); }
+
+  b.x = parseFloat(document.getElementById('p-x').value) || 0;
+  b.y = parseFloat(document.getElementById('p-y').value) || 0;
+  b.angle = ((parseFloat(document.getElementById('p-ang').value) || 0) * Math.PI) / 180;
+
+  const vxVal = document.getElementById('p-vx').value.trim();
+  if (isNaN(Number(vxVal))) { b.vxFormula = vxVal; b.vx = evaluateFormula(vxVal); }
+  else { b.vxFormula = null; b.vx = parseFloat(vxVal) || 0; }
+
+  const vyVal = document.getElementById('p-vy').value.trim();
+  if (isNaN(Number(vyVal))) { b.vyFormula = vyVal; b.vy = evaluateFormula(vyVal); }
+  else { b.vyFormula = null; b.vy = parseFloat(vyVal) || 0; }
+
+  b.staticFriction = parseFloat(document.getElementById('p-sf').value) || 0;
+  b.kineticFriction = parseFloat(document.getElementById('p-kf').value) || 0;
+  b.elasticity = parseFloat(document.getElementById('p-el').value) || 0;
+  b.anchored = document.getElementById('p-anc').checked;
+  render();
+}
+
+function toggleForcePolar(id, mode) {
+  const f = state.forces.find(item => item.id === id);
+  if (!f) return;
+  f.isPolar = (mode === 'polar');
+  updateForceComponents(f);
+  renderPropertiesWindow();
+  render();
+}
+
+function applyForceProps(id) {
+  const f = state.forces.find(item => item.id === id);
+  if (!f) return;
+  if (!f.isPolar) {
+    const fxVal = document.getElementById('f-fx').value.trim();
+    const fyVal = document.getElementById('f-fy').value.trim();
+    if (isNaN(Number(fxVal))) f.fxFormula = fxVal; else { f.fxFormula = null; f.fx = parseFloat(fxVal) || 0; }
+    if (isNaN(Number(fyVal))) f.fyFormula = fyVal; else { f.fyFormula = null; f.fy = parseFloat(fyVal) || 0; }
+  } else {
+    const magVal = document.getElementById('f-mag').value.trim();
+    const dirVal = document.getElementById('f-dir').value.trim();
+    if (isNaN(Number(magVal))) f.magFormula = magVal; else { f.magFormula = null; f.mag = parseFloat(magVal) || 0; }
+    if (isNaN(Number(dirVal))) f.dirFormula = dirVal; else { f.dirFormula = null; f.dir = parseFloat(dirVal) || 0; }
+  }
+  updateForceComponents(f);
+  render();
+}
+
+function applyMeterProps(id) {
+  const m = state.meters.find(item => item.id === id);
+  if (!m) return;
+  m.display = document.getElementById('m-mode').value;
+  m.y1Label = document.getElementById('m-y1-lbl').value;
+  m.y1Formula = document.getElementById('m-y1-eq').value;
+  m.y2Label = document.getElementById('m-y2-lbl').value.trim();
+  m.y2Formula = document.getElementById('m-y2-eq').value.trim();
+  updateMeterDOM(m);
+}
+
+function renderAppearanceWindow() {
+  const el = document.getElementById('app-win-body');
+  if (!state.selected || state.selected.type !== 'body') {
+    el.innerHTML = '<div style="color:#555; text-align:center;">Select a body to edit appearance.</div>';
+    return;
+  }
+  const b = state.bodies.find(item => item.id === state.selected.id);
+  el.innerHTML = `
+    <div class="prop-row"><label>Name:</label><input class="prop-input" value="${b.name}" onchange="state.bodies.find(x=>x.id===${b.id}).name=this.value"></div>
+    <div class="prop-row"><label>Fill Color:</label><input type="color" value="${b.color}" onchange="state.bodies.find(x=>x.id===${b.id}).color=this.value; render();"></div>
+    <div class="prop-row"><label>Show Body:</label><input type="checkbox" ${b.visible ? 'checked' : ''} onchange="state.bodies.find(x=>x.id===${b.id}).visible=this.checked; render();"></div>
+  `;
+}
+
+function renderGeometryWindow() {
+  const el = document.getElementById('geom-win-body');
+  if (!state.selected || state.selected.type !== 'body') {
+    el.innerHTML = '<div style="color:#555; text-align:center;">Select a body to edit geometry.</div>';
+    return;
+  }
+  const b = state.bodies.find(item => item.id === state.selected.id);
+  if (b.shape === 'circle') {
+    el.innerHTML = `
+      <div class="prop-row"><label>Radius (m):</label><input class="prop-input" value="${b.radius}" onchange="state.bodies.find(x=>x.id===${b.id}).radius=Math.max(0.1,parseFloat(this.value)||0.5); render();"></div>
+    `;
+  } else {
+    el.innerHTML = `
+      <div class="prop-row"><label>Width (m):</label><input class="prop-input" value="${b.width}" onchange="state.bodies.find(x=>x.id===${b.id}).width=Math.max(0.1,parseFloat(this.value)||1); render();"></div>
+      <div class="prop-row"><label>Height (m):</label><input class="prop-input" value="${b.height}" onchange="state.bodies.find(x=>x.id===${b.id}).height=Math.max(0.1,parseFloat(this.value)||1); render();"></div>
+    `;
+  }
+}
+
+// --- DEFINE -> NEW CONTROL ---
+function createControlForSelected(prop) {
+  let targetType = 'body';
+  let targetId = state.bodies[0]?.id || 1;
+  if (state.selected) {
+    targetType = state.selected.type;
+    targetId = state.selected.id;
+  } else if (['magnitude', 'direction', 'fx', 'fy'].includes(prop) && state.forces.length > 0) {
+    targetType = 'force';
+    targetId = state.forces[0].id;
+  }
+
+  const id = nextId.control++;
+  const ctrl = {
+    id,
+    name: `Input[${id}]`,
+    label: prop === 'magnitude' ? 'Magnitude' : (prop === 'direction' ? 'Direction' : prop.toUpperCase()),
+    targetType,
+    targetId,
+    prop,
+    style: 'slider',
+    min: 0,
+    max: prop === 'direction' ? 360 : 20,
+    value: prop === 'magnitude' ? 10 : 0,
+    left: 24 + ((id - 1) % 3) * 182,
+    top: 24 + Math.floor((id - 1) / 3) * 76
+  };
+  state.controls.push(ctrl);
+
+  if (targetType === 'force') {
+    const f = state.forces.find(item => item.id === targetId);
+    if (f) {
+      f.isPolar = true;
+      if (prop === 'magnitude') f.magFormula = `Input[${id}]`;
+      if (prop === 'direction') f.dirFormula = `Input[${id}]*pi/180`;
+      updateForceComponents(f);
+    }
+  }
+
+  spawnControlWidget(ctrl);
+  renderPropertiesWindow();
+  render();
+}
+
+function spawnControlWidget(ctrl) {
+  const div = document.createElement('div');
+  div.className = 'canvas-widget';
+  div.id = `ctrl-widget-${ctrl.id}`;
+  div.style.left = ctrl.left + 'px';
+  div.style.top = ctrl.top + 'px';
+  div.style.width = '180px';
+
+  div.innerHTML = `
+    <div class="cw-title">
+      <span style="overflow:hidden; text-overflow:ellipsis;">${ctrl.label} (${ctrl.name})</span>
+      <div style="display:flex; gap:4px; flex-shrink:0;">
+        <span style="cursor:pointer;" onclick="openSingleControlSettings(${ctrl.id})" title="Control Properties">⚙</span>
+        <span style="cursor:pointer;" onclick="removeControl(${ctrl.id})" title="Delete Control">×</span>
+      </div>
+    </div>
+    <div style="padding:6px;" id="ctrl-body-${ctrl.id}"></div>
+  `;
+  wrapper.appendChild(div);
+  makeDraggable(div);
+  updateControlWidgetBody(ctrl);
+  clampWidgetsInsideWorkspace();
+}
+
+function removeControl(id) {
+  saveUndoSnapshot();
+  state.controls = state.controls.filter(c => c.id !== id);
+  const el = document.getElementById(`ctrl-widget-${id}`);
+  if (el) el.remove();
+  render();
+}
+
+function openSingleControlSettings(id) {
+  const ctrl = state.controls.find(c => c.id === id);
+  if (!ctrl) return;
+  showModal(`Control Properties - ${ctrl.name}`, `
+    <div class="prop-row"><label>Control Name:</label><input class="prop-input" id="cp-lbl" value="${ctrl.label}"></div>
+    <div class="prop-row"><label>Control Type:</label>
+      <select class="prop-input" id="cp-style">
+        <option value="slider" ${ctrl.style === 'slider' ? 'selected' : ''}>Slide Bar</option>
+        <option value="textbox" ${ctrl.style === 'textbox' ? 'selected' : ''}>Text Box</option>
+      </select>
+    </div>
+    <div class="prop-row"><label>Minimum Value:</label><input class="prop-input" type="number" id="cp-min" value="${ctrl.min}"></div>
+    <div class="prop-row"><label>Maximum Value:</label><input class="prop-input" type="number" id="cp-max" value="${ctrl.max}"></div>
+    <div style="text-align:right; margin-top:10px; display:flex; justify-content:flex-end; gap:6px;">
+      <button class="win-action-btn" onclick="saveControlSettings(${ctrl.id})">OK</button>
+      <button class="win-action-btn" onclick="closeModal()">Cancel</button>
+    </div>
+  `);
+}
+
+function saveControlSettings(id) {
+  const ctrl = state.controls.find(c => c.id === id);
+  if (ctrl) {
+    ctrl.label = document.getElementById('cp-lbl').value || ctrl.label;
+    ctrl.style = document.getElementById('cp-style').value;
+    ctrl.min = parseFloat(document.getElementById('cp-min').value) || 0;
+    ctrl.max = parseFloat(document.getElementById('cp-max').value) || 100;
+    document.querySelector(`#ctrl-widget-${ctrl.id} .cw-title span`).textContent = `${ctrl.label} (${ctrl.name})`;
+    updateControlWidgetBody(ctrl);
+  }
+  closeModal();
+}
+
+// --- MEASURE -> METERS & GRAPHS ---
+function createMeasure(type, display = 'Graph', customOpts = {}) {
+  const bId = (state.selected && state.selected.type === 'body') ? state.selected.id : (state.bodies[0]?.id || 1);
+  const id = nextId.meter++;
+
+  let y1Label = type;
+  let y1Formula = `Body[${bId}].P.X`;
+  if (type === 'Time') y1Formula = 't';
+  else if (type === 'Position') y1Formula = `Body[${bId}].P.X`;
+  else if (type === 'Displacement') y1Formula = `Body[${bId}].P.X`;
+  else if (type === 'Velocity') y1Formula = `Body[${bId}].V.X`;
+  else if (type === 'Acceleration') y1Formula = `Body[${bId}].A.X`;
+  else if (type === 'Force') y1Formula = `ConstraintForce[1]`;
+  else if (type === 'KineticEnergy') { y1Label = 'Translational KE'; y1Formula = `Body[${bId}].KE`; }
+  else if (type === 'Momentum') y1Formula = `Body[${bId}].M * Body[${bId}].V.X`;
+
+  const meter = {
+    id,
+    display,
+    y1Label: customOpts.y1Label || y1Label,
+    y1Formula: customOpts.y1Formula || y1Formula,
+    y2Label: customOpts.y2Label || '',
+    y2Formula: customOpts.y2Formula || '',
+    val1: 0,
+    val2: 0,
+    data: [],
+    left: 24 + ((id - 1) % 2) * 238,
+    top: 115 + Math.floor((id - 1) / 2) * 155
+  };
+  state.meters.push(meter);
+  spawnMeterWidget(meter);
+  selectObject('meter', id);
+  return meter;
+}
+
+function spawnMeterWidget(m) {
+  const div = document.createElement('div');
+  div.className = 'canvas-widget';
+  div.id = `meter-widget-${m.id}`;
+  div.style.left = m.left + 'px';
+  div.style.top = m.top + 'px';
+  div.style.width = '230px';
+
+  div.innerHTML = `
+    <div class="cw-title" onclick="selectObject('meter', ${m.id})">
+      <span id="meter-title-${m.id}" style="overflow:hidden; text-overflow:ellipsis;">${m.y1Label}${m.y2Label ? ' & ' + m.y2Label : ''}</span>
+      <div style="display:flex; gap:4px; flex-shrink:0;">
+        <span style="cursor:pointer;" onclick="selectObject('meter', ${m.id}); openFloatingWin('win-properties')" title="Properties">⚙</span>
+        <span style="cursor:pointer;" onclick="removeMeter(${m.id})" title="Close">×</span>
+      </div>
+    </div>
+    <div id="meter-body-${m.id}" style="padding:6px; background:white;"></div>
+  `;
+  wrapper.appendChild(div);
+  makeDraggable(div);
+  updateMeterDOM(m);
+  clampWidgetsInsideWorkspace();
+}
+
+function updateMeterDOM(m) {
+  const title = document.getElementById(`meter-title-${m.id}`);
+  const body = document.getElementById(`meter-body-${m.id}`);
+  if (!body) return;
+  if (title) title.textContent = `${m.y1Label}${m.y2Label ? ' & ' + m.y2Label : ''}`;
+
+  if (m.display === 'Meter') {
+    body.innerHTML = `
+      <div style="font-family:'Courier New',monospace; font-size:12px;">
+        <div><b>${m.y1Label}:</b> <span id="m-v1-${m.id}">${formatNum(m.val1)}</span></div>
+        ${m.y2Formula ? `<div style="color:#0000aa;"><b>${m.y2Label || 'y2'}:</b> <span id="m-v2-${m.id}">${formatNum(m.val2)}</span></div>` : ''}
+      </div>
+    `;
+  } else {
+    body.innerHTML = `
+      <div style="font-size:10px; display:flex; justify-content:space-between; gap:6px; margin-bottom:2px;">
+        <span style="color:#cc0000;">${m.y1Label}: <b id="m-v1-${m.id}">${formatNum(m.val1)}</b></span>
+        ${m.y2Formula ? `<span style="color:#0000cc;">${m.y2Label || 'y2'}: <b id="m-v2-${m.id}">${formatNum(m.val2)}</b></span>` : ''}
+      </div>
+      <canvas id="m-canvas-${m.id}" width="214" height="96" style="border:1px solid #ccc; display:block; max-width:100%;"></canvas>
+    `;
+    drawMeterGraph(m);
+  }
+}
+
+function recordMeters() {
+  state.meters.forEach(m => {
+    m.val1 = evaluateFormula(m.y1Formula);
+    m.val2 = m.y2Formula ? evaluateFormula(m.y2Formula) : 0;
+    m.data.push({ t: state.time, v1: m.val1, v2: m.val2 });
+    if (m.data.length > 350) m.data.shift();
+
+    const v1El = document.getElementById(`m-v1-${m.id}`);
+    const v2El = document.getElementById(`m-v2-${m.id}`);
+    if (v1El) v1El.textContent = formatNum(m.val1);
+    if (v2El) v2El.textContent = formatNum(m.val2);
+    if (m.display === 'Graph') drawMeterGraph(m);
+  });
+}
+
+function drawMeterGraph(m) {
+  const c = document.getElementById(`m-canvas-${m.id}`);
+  if (!c) return;
+  const gctx = c.getContext('2d');
+  const w = c.width, h = c.height;
+  gctx.clearRect(0, 0, w, h);
+
+  gctx.strokeStyle = '#eee';
+  gctx.beginPath();
+  gctx.moveTo(0, h / 2); gctx.lineTo(w, h / 2);
+  gctx.stroke();
+
+  if (m.data.length < 2) return;
+  const allVals = m.data.flatMap(d => m.y2Formula ? [d.v1, d.v2] : [d.v1]);
+  let minV = Math.min(0, ...allVals);
+  let maxV = Math.max(1, ...allVals);
+  if (maxV === minV) maxV = minV + 1;
+
+  gctx.strokeStyle = '#cc0000';
+  gctx.lineWidth = 1.5;
+  gctx.beginPath();
+  m.data.forEach((d, i) => {
+    const px = (i / (m.data.length - 1)) * w;
+    const py = h - ((d.v1 - minV) / (maxV - minV)) * (h - 10) - 5;
+    if (i === 0) gctx.moveTo(px, py); else gctx.lineTo(px, py);
+  });
+  gctx.stroke();
+
+  if (m.y2Formula) {
+    gctx.strokeStyle = '#0000cc';
+    gctx.beginPath();
+    m.data.forEach((d, i) => {
+      const px = (i / (m.data.length - 1)) * w;
+      const py = h - ((d.v2 - minV) / (maxV - minV)) * (h - 10) - 5;
+      if (i === 0) gctx.moveTo(px, py); else gctx.lineTo(px, py);
+    });
+    gctx.stroke();
+  }
+}
+
+function removeMeter(id) {
+  state.meters = state.meters.filter(m => m.id !== id);
+  const el = document.getElementById(`meter-widget-${id}`);
+  if (el) el.remove();
+}
+
+// --- WORLD & VIEW MODALS ---
+function openWorldModal(section) {
+  if (section === 'gravity') {
+    showModal('Gravity', `
+      <div class="prop-row"><label>Gravity Enabled:</label><input type="checkbox" id="wg-en" ${state.gravity.enabled ? 'checked' : ''}></div>
+      <div class="prop-row"><label>Vertical Accel (m/s²):</label><input class="prop-input" id="wg-y" value="${state.gravity.y}"></div>
+      <div class="prop-row"><label>Horizontal Accel (m/s²):</label><input class="prop-input" id="wg-x" value="${state.gravity.x}"></div>
+      <div style="text-align:right; margin-top:10px;">
+        <button class="win-action-btn" onclick="state.gravity.enabled=document.getElementById('wg-en').checked; state.gravity.y=parseFloat(document.getElementById('wg-y').value)||0; state.gravity.x=parseFloat(document.getElementById('wg-x').value)||0; closeModal();">OK</button>
+      </div>
+    `);
+  } else if (section === 'air') {
+    showModal('Air Resistance', `
+      <div class="prop-row"><label>Enable Air Resistance:</label><input type="checkbox" id="wa-en" ${state.airResistance.enabled ? 'checked' : ''}></div>
+      <div class="prop-row"><label>Drag Coefficient (k):</label><input class="prop-input" id="wa-k" value="${state.airResistance.k}"></div>
+      <div style="text-align:right; margin-top:10px;">
+        <button class="win-action-btn" onclick="state.airResistance.enabled=document.getElementById('wa-en').checked; state.airResistance.k=parseFloat(document.getElementById('wa-k').value)||0; closeModal();">OK</button>
+      </div>
+    `);
+  } else if (section === 'pause') {
+    const c1 = state.pauseConditions[0] || '';
+    const c2 = state.pauseConditions[1] || '';
+    showModal('Pause Control', `
+      <div style="margin-bottom:6px; color:#333;">Pause simulation automatically when any condition is true:</div>
+      <div class="prop-row"><label>Condition 1:</label><input class="prop-input" style="width:170px;" id="wp-c1" placeholder="Body[1].P.X>=3" value="${c1}"></div>
+      <div class="prop-row"><label>Condition 2:</label><input class="prop-input" style="width:170px;" id="wp-c2" placeholder="Body[1].P.X<=-3" value="${c2}"></div>
+      <div style="text-align:right; margin-top:10px;">
+        <button class="win-action-btn" onclick="savePauseConditions()">OK</button>
+      </div>
+    `);
+  } else if (section === 'accuracy') {
+    showModal('Simulation Accuracy', `
+      <div class="prop-row"><label>Animation Step (frames/sec):</label><input class="prop-input" type="number" id="w-fps" value="${state.accuracyFPS}"></div>
+      <div style="text-align:right; margin-top:10px;">
+        <button class="win-action-btn" onclick="state.accuracyFPS=Math.max(20,Math.min(400,parseInt(document.getElementById('w-fps').value,10)||100)); document.getElementById('status-fps').textContent=state.accuracyFPS+' f/s'; closeModal();">OK</button>
+      </div>
+    `);
+  } else if (section === 'units') {
+    showModal('Numbers and Units', `
+      <div class="prop-row"><label>Format:</label><select class="prop-input"><option>Fixed Point</option></select></div>
+      <div class="prop-row"><label>Decimal Digits (0-4):</label><input class="prop-input" type="number" min="0" max="4" id="v-dig" value="${state.decimalDigits}"></div>
+      <div style="text-align:right; margin-top:10px;">
+        <button class="win-action-btn" onclick="state.decimalDigits=Math.max(0,Math.min(4,parseInt(document.getElementById('v-dig').value,10)||0)); updateUIReadouts(); renderPropertiesWindow(); render(); closeModal();">OK</button>
+      </div>
+    `);
+  } else {
+    showModal('World Settings', `
+      <div class="prop-row"><label>Force Field Fx (N):</label><input class="prop-input" id="ff-x" value="${state.forceField.fx}"></div>
+      <div class="prop-row"><label>Force Field Fy (N):</label><input class="prop-input" id="ff-y" value="${state.forceField.fy}"></div>
+      <div style="text-align:right; margin-top:10px;">
+        <button class="win-action-btn" onclick="state.forceField.fx=parseFloat(document.getElementById('ff-x').value)||0; state.forceField.fy=parseFloat(document.getElementById('ff-y').value)||0; state.forceField.enabled=(state.forceField.fx!==0||state.forceField.fy!==0); closeModal();">OK</button>
+      </div>
+    `);
+  }
+}
+
+function savePauseConditions() {
+  const c1 = document.getElementById('wp-c1').value.trim();
+  const c2 = document.getElementById('wp-c2').value.trim();
+  state.pauseConditions = [c1, c2].filter(Boolean);
+  closeModal();
+  setStatus(`Pause Control updated (${state.pauseConditions.length} condition(s)).`);
+}
+
+// --- PRESET: EXACT 14-STEP WORK EXPERIMENT ---
+function loadWorkExperimentPreset() {
+  cmdNew(true);
+  document.getElementById('window-title').textContent = 'Interactive Physics - [Work_Experiment.ip]';
+
+  const block = createBody({
+    name: 'Body[1]',
+    shape: 'rect',
+    x: 0,
+    y: 0.5,
+    width: 1.0,
+    height: 1.0,
+    mass: 10,
+    staticFriction: 0,
+    kineticFriction: 0,
+    color: '#99ccff'
+  });
+
+  createBody({
+    name: 'Body[2]',
+    shape: 'rect',
+    x: 0,
+    y: -0.25,
+    width: 200,
+    height: 0.5,
+    mass: 1000,
+    staticFriction: 0,
+    kineticFriction: 0,
+    anchored: true,
+    color: '#d4d0c8'
+  });
+
+  const force = createForce({
+    bodyId: block.id,
+    isPolar: true,
+    mag: 10,
+    dir: 0
+  });
+
+  const ctrlMag = {
+    id: nextId.control++,
+    name: 'Input[1]',
+    label: 'Magnitude',
+    targetType: 'force',
+    targetId: force.id,
+    prop: 'magnitude',
+    style: 'textbox',
+    min: 0,
+    max: 10,
+    value: 10,
+    left: 24,
+    top: 24
+  };
+
+  const ctrlDir = {
+    id: nextId.control++,
+    name: 'Input[2]',
+    label: 'Direction (θ°)',
+    targetType: 'force',
+    targetId: force.id,
+    prop: 'direction',
+    style: 'textbox',
+    min: 0,
+    max: 360,
+    value: 0,
+    left: 210,
+    top: 24
+  };
+
+  state.controls.push(ctrlMag, ctrlDir);
+  spawnControlWidget(ctrlMag);
+  spawnControlWidget(ctrlDir);
+
+  force.magFormula = 'Input[1]';
+  force.dirFormula = 'Input[2]*pi/180';
+  updateForceComponents(force);
+
+  createMeasure('KineticEnergy', 'Graph', {
+    y1Label: 'KE (J)',
+    y1Formula: 'Body[1].KE',
+    y2Label: 'W (N.m)',
+    y2Formula: '|ConstraintForce[1]|*Body[1].P.X*cos(Input[2]*pi/180)'
+  });
+
+  state.decimalDigits = 0;
+  state.pauseConditions = ['Body[1].P.X>=3', 'Body[1].P.X<=-3'];
+  state.accuracyFPS = 100;
+  document.getElementById('status-fps').textContent = '100 f/s';
+
+  selectObject('force', force.id);
+  openFloatingWin('win-properties');
+  updateUIReadouts();
+  render();
+  setStatus('Loaded 14-Step Work Experiment. Set angle θ°, click Run, and read W (N.m).');
+}
+
+// --- STEPS 12-14: W VS THETA TABLE & GRAPH ---
+function openPlotWvsThetaModal() {
+  const angles = [0, 45, 90, 135, 180, 225, 270, 315, 360];
+  const rows = angles.map(deg => {
+    const rad = deg * Math.PI / 180;
+    const wVal = Math.round(10 * 3 * Math.cos(rad));
+    return `<tr>
+      <td style="border:1px solid #808080; padding:3px 8px;">${deg}°</td>
+      <td style="border:1px solid #808080; padding:3px 8px; font-weight:bold;">${wVal} N.m</td>
+    </tr>`;
+  }).join('');
+
+  showModal('Steps 12–14: Work (W) vs Angle (θ) Table & Graph', `
+    <div class="w-theta-layout">
+      <table style="border-collapse:collapse; background:white; text-align:center;">
+        <tr style="background:#d4d0c8;">
+          <th style="border:1px solid #808080; padding:4px 8px;">θ°</th>
+          <th style="border:1px solid #808080; padding:4px 8px;">Work (W) N.m</th>
+        </tr>
+        ${rows}
+      </table>
+      <div style="max-width:250px;">
+        <canvas id="w-theta-canvas" width="240" height="175" style="background:white; border:1px solid #808080; max-width:100%;"></canvas>
+        <div style="font-size:10px; margin-top:5px; color:#222; line-height:1.4;">
+          <b>Conclusion:</b> Work W = F · Δx · cos(θ) is maximum (+30 N.m) at 0° & 360°, zero at 90° & 270°, and negative (-30 N.m) at 180°.
+        </div>
+      </div>
+    </div>
+    <div style="text-align:right; margin-top:10px;">
+      <button class="win-action-btn" onclick="closeModal()">Close</button>
+    </div>
+  `);
+
+  requestAnimationFrame(() => {
+    const c = document.getElementById('w-theta-canvas');
+    if (!c) return;
+    const g = c.getContext('2d');
+    const w = c.width, h = c.height;
+    g.strokeStyle = '#808080';
+    g.beginPath(); g.moveTo(26, h / 2); g.lineTo(w - 10, h / 2); g.moveTo(26, 10); g.lineTo(26, h - 10); g.stroke();
+    g.fillStyle = '#000'; g.font = '9px Tahoma';
+    g.fillText('+30', 2, 20); g.fillText('0', 14, h / 2 + 3); g.fillText('-30', 2, h - 14);
+    g.fillText('0°', 26, h / 2 + 12); g.fillText('180°', 114, h / 2 + 12); g.fillText('360°', 206, h / 2 + 12);
+
+    g.strokeStyle = '#0000cc';
+    g.lineWidth = 2;
+    g.beginPath();
+    for (let deg = 0; deg <= 360; deg += 5) {
+      const px = 26 + (deg / 360) * (w - 40);
+      const val = 30 * Math.cos(deg * Math.PI / 180);
+      const py = (h / 2) - (val / 30) * (h / 2 - 18);
+      if (deg === 0) g.moveTo(px, py); else g.lineTo(px, py);
+    }
+    g.stroke();
+  });
+}
+
+// --- GENERAL COMMANDS ---
+function setTool(t) {
+  state.tool = t;
+  polyPoints = [];
+  document.querySelectorAll('.tool-icon').forEach(el => el.classList.remove('active'));
+  const btn = document.getElementById(`tool-${t}`);
+  if (btn) btn.classList.add('active');
+  setStatus(`Tool selected: ${t.toUpperCase()}`);
+}
+
+function cmdNew(silent = false) {
+  if (!silent && state.bodies.length > 0) {
+    showModal('New Experiment', `
+      <div style="margin-bottom:10px;">Clear current experiment and start a new one?</div>
+      <div style="text-align:right; display:flex; justify-content:flex-end; gap:6px;">
+        <button class="win-action-btn" onclick="closeModal(); performNewReset();">Yes</button>
+        <button class="win-action-btn" onclick="closeModal();">No</button>
+      </div>
+    `);
+    return;
+  }
+  performNewReset();
+}
+
+function performNewReset() {
+  stopSim();
+  state.bodies = [];
+  state.forces = [];
+  state.constraints = [];
+  state.controls = [];
+  state.meters = [];
+  state.texts = [];
+  state.pauseConditions = [];
+  state.selected = null;
+  state.time = 0;
+  state.frame = 0;
+  initialSnapshot = null;
+  nextId = { body: 1, force: 1, constraint: 1, control: 1, meter: 1, text: 1 };
+  document.querySelectorAll('.canvas-widget').forEach(el => el.remove());
+  document.getElementById('window-title').textContent = 'Interactive Physics - [Untitled1.ip]';
+  renderPropertiesWindow();
+  renderAppearanceWindow();
+  renderGeometryWindow();
+  updateUIReadouts();
+  render();
+  setStatus('New experiment created.');
+}
+
+function resetSessionPrompt() {
+  showModal('Reset Session', `
+    <div style="margin-bottom:10px;">Reset the entire simulation workspace to default?</div>
+    <div style="text-align:right; display:flex; justify-content:flex-end; gap:6px;">
+      <button class="win-action-btn" onclick="closeModal(); initDefaultScene();">Reset</button>
+      <button class="win-action-btn" onclick="closeModal();">Cancel</button>
+    </div>
+  `);
+}
+
+function cmdSave() {
+  const blob = new Blob([JSON.stringify(state)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'Experiment.ip.json';
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  setStatus('Experiment saved as Experiment.ip.json');
+}
+
+function cmdSaveAs() {
+  openPromptModal('Save As', 'Enter experiment file name:', 'MyExperiment.ip', (name) => {
+    if (name) {
+      document.getElementById('window-title').textContent = `Interactive Physics - [${name}]`;
+      cmdSave();
+    }
+  });
+}
+
+function cmdOpen() {
+  const inp = document.createElement('input');
+  inp.type = 'file';
+  inp.accept = '.json,.ip';
+  inp.onchange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const loaded = JSON.parse(ev.target.result);
+        performNewReset();
+        Object.assign(state, loaded);
+        state.running = false;
+        state.controls.forEach(spawnControlWidget);
+        state.meters.forEach(spawnMeterWidget);
+        render();
+        setStatus(`Loaded ${file.name}`);
+      } catch (_) {
+        showModal('Open Error', '<div>Invalid experiment file format.</div><div style="text-align:right; margin-top:8px;"><button class="win-action-btn" onclick="closeModal()">OK</button></div>');
+      }
+    };
+    reader.readAsText(file);
+  };
+  inp.click();
+}
+
+function cmdRevert() { resetSim(); }
+
+function cmdExportCSV() {
+  if (state.meters.length === 0) {
+    showModal('Export CSV', '<div>No Measure windows are open to export.</div><div style="text-align:right; margin-top:8px;"><button class="win-action-btn" onclick="closeModal()">OK</button></div>');
+    return;
+  }
+  const m = state.meters[0];
+  let csv = `Time,${m.y1Label},${m.y2Label}\n`;
+  m.data.forEach(d => { csv += `${d.t},${d.v1},${d.v2}\n`; });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+  a.download = 'physics_data.csv';
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+
+function cmdDuplicate() {
+  if (!state.selected || state.selected.type !== 'body') return;
+  const orig = state.bodies.find(b => b.id === state.selected.id);
+  if (!orig) return;
+  const copy = createBody({ ...orig, x: orig.x + 0.5, y: orig.y + 0.5 });
+  selectObject('body', copy.id);
+}
+
+function cmdDelete() {
+  if (!state.selected) return;
+  if (state.selected.type === 'body') {
+    state.bodies = state.bodies.filter(b => b.id !== state.selected.id);
+    state.forces = state.forces.filter(f => f.bodyId !== state.selected.id);
+  } else if (state.selected.type === 'force') {
+    state.forces = state.forces.filter(f => f.id !== state.selected.id);
+  } else if (state.selected.type === 'meter') {
+    removeMeter(state.selected.id);
+  }
+  state.selected = null;
+  renderPropertiesWindow();
+  renderAppearanceWindow();
+  renderGeometryWindow();
+  render();
+}
+
+function cmdCopy() {
+  if (state.selected?.type === 'body') {
+    state.clipboard = JSON.parse(JSON.stringify(state.bodies.find(b => b.id === state.selected.id)));
+  }
+}
+function cmdCut() { cmdCopy(); cmdDelete(); }
+function cmdPaste() {
+  if (state.clipboard) {
+    const b = createBody({ ...state.clipboard, x: state.clipboard.x + 0.5, y: state.clipboard.y + 0.5 });
+    selectObject('body', b.id);
+  }
+}
+function cmdUndo() { resetSim(); }
+function cmdRedo() { setStatus('Nothing to redo.'); }
+function cmdSelectAll() {
+  if (state.bodies.length > 0) selectObject('body', state.bodies[0].id);
+}
+function cmdAnchorSelected() {
+  if (state.selected?.type === 'body') {
+    const b = state.bodies.find(x => x.id === state.selected.id);
+    if (b) {
+      b.anchored = !b.anchored;
+      renderPropertiesWindow();
+      render();
+    }
+  }
+}
+function cmdJoinSelected() {
+  if (state.bodies.length >= 2) {
+    const b1 = state.bodies[0], b2 = state.bodies[1];
+    state.constraints.push({ type: 'pin', b1: b1.id, b2: b2.id, off1x: 0, off1y: 0, off2x: 0, off2y: 0 });
+    render();
+  }
+}
+function cmdSplitSelected() {
+  state.constraints = [];
+  render();
+}
+function cmdBringToFront() {
+  if (state.selected?.type === 'body') {
+    const idx = state.bodies.findIndex(b => b.id === state.selected.id);
+    if (idx > -1) state.bodies.push(state.bodies.splice(idx, 1)[0]);
+    render();
+  }
+}
+function cmdSendToBack() {
+  if (state.selected?.type === 'body') {
+    const idx = state.bodies.findIndex(b => b.id === state.selected.id);
+    if (idx > -1) state.bodies.unshift(state.bodies.splice(idx, 1)[0]);
+    render();
+  }
+}
+
+function zoomCanvas(factor) {
+  state.view.zoom = Math.max(12, Math.min(280, state.view.zoom * factor));
+  render();
+}
+function zoomToFit() {
+  state.view.zoom = 60;
+  state.view.panX = 0;
+  state.view.panY = 0;
+  render();
+}
+function toggleViewFlag(flag) {
+  state.view[flag] = !state.view[flag];
+  const chk = document.getElementById(`chk-${flag}`);
+  if (chk) chk.textContent = state.view[flag] ? '✓' : '';
+  if (flag === 'snap') {
+    const tb = document.getElementById('tb-snap');
+    if (tb) tb.style.background = state.view.snap ? '#c8c4bc' : '';
+  }
+  render();
+}
+
+function cmdDuplicate() {
+  if (!state.selected || state.selected.type !== 'body') return;
+  const orig = state.bodies.find(b => b.id === state.selected.id);
+  if (!orig) return;
+  saveUndoSnapshot();
+  const copy = createBody({ ...orig, trail: [], x: orig.x + 0.5, y: orig.y + 0.5 });
+  selectObject('body', copy.id);
+}
+
+function cmdDelete() {
+  if (!state.selected) return;
+  saveUndoSnapshot();
+  const { type, id } = state.selected;
+  if (type === 'body') {
+    state.bodies = state.bodies.filter(b => b.id !== id);
+    state.forces = state.forces.filter(f => f.bodyId !== id);
+    state.constraints = state.constraints.filter(c => c.b1 !== id && c.b2 !== id);
+  } else if (type === 'force') {
+    state.forces = state.forces.filter(f => f.id !== id);
+  } else if (type === 'constraint') {
+    state.constraints = state.constraints.filter(c => c.id !== id);
+  } else if (type === 'meter') {
+    removeMeter(id);
+  } else if (type === 'control') {
+    removeControl(id);
+  } else if (type === 'text') {
+    state.texts = state.texts.filter(t => t.id !== id);
+  }
+  state.selected = null;
+  renderPropertiesWindow();
+  renderAppearanceWindow();
+  renderGeometryWindow();
+  render();
+  setStatus('Element deleted.');
+}
+
+function cmdUndo() {
+  if (state.undoStack.length === 0) {
+    resetSim();
+    return;
+  }
+  const current = JSON.stringify({
+    bodies: state.bodies,
+    forces: state.forces,
+    constraints: state.constraints,
+    controls: state.controls,
+    meters: state.meters,
+    texts: state.texts,
+    nextId: { ...nextId }
+  });
+  state.redoStack.push(current);
+  const prev = state.undoStack.pop();
+  restoreFullSnapshot(prev);
+  setStatus('Undo completed.');
+}
+
+function cmdRedo() {
+  if (state.redoStack.length === 0) {
+    setStatus('Nothing to redo.');
+    return;
+  }
+  const current = JSON.stringify({
+    bodies: state.bodies,
+    forces: state.forces,
+    constraints: state.constraints,
+    controls: state.controls,
+    meters: state.meters,
+    texts: state.texts,
+    nextId: { ...nextId }
+  });
+  state.undoStack.push(current);
+  const next = state.redoStack.pop();
+  restoreFullSnapshot(next);
+  setStatus('Redo completed.');
+}
+
+// --- SCRIPT & FORMULA MODALS ---
+function openFormulaEditor() {
+  showModal('Formula Editor', `
+    <div style="margin-bottom:6px;">Evaluate an Interactive Physics formula:</div>
+    <input class="prop-input" style="width:100%;" id="fe-expr" value="|ConstraintForce[1]|*Body[1].P.X*cos(Input[2]*pi/180)">
+    <div style="margin-top:8px;">Result: <b id="fe-res">0</b></div>
+    <div style="text-align:right; margin-top:10px; display:flex; justify-content:flex-end; gap:6px;">
+      <button class="win-action-btn" onclick="document.getElementById('fe-res').textContent=evaluateFormula(document.getElementById('fe-expr').value)">Evaluate</button>
+      <button class="win-action-btn" onclick="closeModal()">Close</button>
+    </div>
+  `);
+}
+
+function openVariablesList() {
+  const list = [
+    ...state.bodies.map(b => `${b.name}: X=${formatNum(b.x)}, Y=${formatNum(b.y)}, Vx=${formatNum(b.vx)}, KE=${formatNum(0.5*b.mass*b.vx*b.vx)}`),
+    ...state.forces.map(f => `${f.name}: Mag=${formatNum(f.mag)}, Fx=${formatNum(f.fx)}, Fy=${formatNum(f.fy)}`),
+    ...state.controls.map(c => `${c.name} (${c.label}): ${c.value}`)
+  ].join('<br>');
+  showModal('Active Simulation Variables', `<div style="background:white; padding:6px; border:1px solid #808080; max-height:200px; overflow:auto;">${list || 'No objects defined.'}</div><div style="text-align:right; margin-top:8px;"><button class="win-action-btn" onclick="closeModal()">OK</button></div>`);
+}
+
+function openScriptEditor() {
+  showModal('Script Editor', `
+    <textarea id="scr-area" style="width:100%; height:130px; font-family:'Courier New',monospace; font-size:11px; user-select:text;">${state.userScript}</textarea>
+    <div style="text-align:right; margin-top:8px; display:flex; justify-content:flex-end; gap:6px;">
+      <button class="win-action-btn" onclick="state.userScript=document.getElementById('scr-area').value; runUserScript(); closeModal();">Run Script</button>
+      <button class="win-action-btn" onclick="state.userScript=document.getElementById('scr-area').value; closeModal();">Save</button>
+    </div>
+  `);
+}
+
+function runUserScript() {
+  try {
+    const fn = new Function('state', 'Body', 'Input', 'runSim', 'stopSim', 'resetSim', state.userScript);
+    fn(state, state.bodies, state.controls, runSim, stopSim, resetSim);
+  } catch (err) {
+    showModal('Script Error', `<div>${err.message}</div><div style="text-align:right; margin-top:8px;"><button class="win-action-btn" onclick="closeModal()">OK</button></div>`);
+  }
+}
+
+function openControlPropsModal() {
+  if (state.controls.length === 0) {
+    showModal('Control Properties', '<div>No control widgets exist yet. Use Define → New Control first.</div><div style="text-align:right; margin-top:8px;"><button class="win-action-btn" onclick="closeModal()">OK</button></div>');
+    return;
+  }
+  openSingleControlSettings(state.controls[0].id);
+}
+
+function openHelpModal() {
+  showModal('Interactive Physics Guide', `
+    <div style="line-height:1.5; max-height:240px; overflow:auto;">
+      <b>Quick Guide:</b><br>
+      1. Choose tools from the left <b>Tool Palette</b> (Circle, Rectangle, Anchor, Spring, Force, etc.).<br>
+      2. Open <b>Object → Properties</b> to modify Mass, Friction, Elasticity, or Polar Force formulas.<br>
+      3. Use <b>Define → New Control</b> to create Sliders or Text Boxes.<br>
+      4. Use <b>Measure</b> to inspect live Graphs or Digital Meters.<br>
+      5. Click <b>⚡ Load Work Experiment</b> to run the full 14-step Work vs Angle experiment.
+    </div>
+    <div style="text-align:right; margin-top:10px;"><button class="win-action-btn" onclick="closeModal()">Close</button></div>
+  `);
+}
+
+function openAboutModal() {
+  showModal('About Interactive Physics', `
+    <div style="line-height:1.5;">
+      <b>Interactive Physics Web Edition</b><br>
+      2D Rigid Body & Constraint Simulator<br>
+      Formula Evaluator, Pause Control & Live Graphs
+    </div>
+    <div style="text-align:right; margin-top:10px;"><button class="win-action-btn" onclick="closeModal()">OK</button></div>
+  `);
+}
+
+// --- UI HELPERS ---
+function openFloatingWin(id) {
+  const el = document.getElementById(id);
+  if (el) {
+    el.style.display = 'flex';
+    clampWidgetsInsideWorkspace();
+  }
+}
+function closeFloatingWin(id) {
+  const el = document.getElementById(id);
+  if (el) el.style.display = 'none';
+}
+function closeAllFloating() {
+  ['win-properties', 'win-appearance', 'win-geometry'].forEach(closeFloatingWin);
+}
+function cascadeWindows() {
+  ['win-properties', 'win-appearance', 'win-geometry'].forEach((id, i) => {
+    const el = document.getElementById(id);
+    el.style.display = 'flex';
+    el.style.right = 'auto';
+    el.style.left = (40 + i * 24) + 'px';
+    el.style.top = (30 + i * 24) + 'px';
+  });
+  clampWidgetsInsideWorkspace();
+}
+
+function showModal(title, innerHTML) {
+  const backdrop = document.getElementById('modal-backdrop');
+  const content = document.getElementById('modal-content');
+  content.innerHTML = `
+    <div class="fw-header">
+      <span>${title}</span>
+      <div class="win-btn" onclick="closeModal()">×</div>
+    </div>
+    <div class="modal-body-scroll">${innerHTML}</div>
+  `;
+  backdrop.style.display = 'flex';
+}
+
+function openPromptModal(title, label, defaultVal, onConfirm) {
+  showModal(title, `
+    <div class="prop-row"><label>${label}</label><input class="prop-input" id="prompt-inp" value="${defaultVal || ''}"></div>
+    <div style="text-align:right; margin-top:10px; display:flex; justify-content:flex-end; gap:6px;">
+      <button class="win-action-btn" id="prompt-ok">OK</button>
+      <button class="win-action-btn" onclick="closeModal()">Cancel</button>
+    </div>
+  `);
+  document.getElementById('prompt-ok').onclick = () => {
+    const val = document.getElementById('prompt-inp').value;
+    closeModal();
+    onConfirm(val);
+  };
+}
+
+function closeModal() {
+  document.getElementById('modal-backdrop').style.display = 'none';
+}
+
+function makeDraggable(el) {
+  const header = el.querySelector('.fw-header, .cw-title');
+  if (!header) return;
+
+  header.addEventListener('mousedown', (e) => {
+    if (e.target.closest('span[title], .win-btn')) return;
+    e.stopPropagation();
+    startDrag(e.clientX, e.clientY);
+  });
+
+  header.addEventListener('touchstart', (e) => {
+    if (e.target.closest('span[title], .win-btn')) return;
+    if (e.touches.length > 0) {
+      e.stopPropagation();
+      startDrag(e.touches[0].clientX, e.touches[0].clientY);
+    }
+  }, { passive: true });
+
+  function startDrag(clientX, clientY) {
+    const wRect = wrapper.getBoundingClientRect();
+    const eRect = el.getBoundingClientRect();
+    const startX = clientX;
+    const startY = clientY;
+    const origLeft = eRect.left - wRect.left;
+    const origTop = eRect.top - wRect.top;
+    el.style.right = 'auto';
+
+    function move(cx, cy) {
+      const maxX = Math.max(4, wrapper.clientWidth - el.offsetWidth - 4);
+      const maxY = Math.max(4, wrapper.clientHeight - el.offsetHeight - 4);
+      const nextL = Math.max(4, Math.min(maxX, origLeft + (cx - startX)));
+      const nextT = Math.max(4, Math.min(maxY, origTop + (cy - startY)));
+      el.style.left = nextL + 'px';
+      el.style.top = nextT + 'px';
+    }
+
+    function onMouseMove(ev) { move(ev.clientX, ev.clientY); }
+    function onTouchMove(ev) {
+      if (ev.touches.length > 0) move(ev.touches[0].clientX, ev.touches[0].clientY);
+    }
+    function cleanup() {
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', cleanup);
+      window.removeEventListener('touchmove', onTouchMove);
+      window.removeEventListener('touchend', cleanup);
+    }
+
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', cleanup);
+    window.addEventListener('touchmove', onTouchMove, { passive: true });
+    window.addEventListener('touchend', cleanup);
+  }
+}
+
+// Menu bar behavior
+document.querySelectorAll('#menu-bar > .menu-item').forEach(item => {
+  item.addEventListener('click', (e) => {
+    if (e.target.closest('.dd-item') && !e.target.closest('.dd-sub')) {
+      closeAllMenus();
+      return;
+    }
+    e.stopPropagation();
+    const wasActive = item.classList.contains('active');
+    closeAllMenus();
+    if (!wasActive) item.classList.add('active');
+  });
+
+  item.addEventListener('mouseenter', () => {
+    if (window.innerWidth > 700 && document.querySelector('#menu-bar > .menu-item.active')) {
+      closeAllMenus();
+      item.classList.add('active');
+    }
+  });
+});
+
+function toggleSubmenu(e, subEl) {
+  e.stopPropagation();
+  subEl.classList.toggle('open');
+}
+
+function closeAllMenus() {
+  document.querySelectorAll('#menu-bar > .menu-item').forEach(m => m.classList.remove('active'));
+  document.querySelectorAll('.dd-sub').forEach(s => s.classList.remove('open'));
+  hideContextMenu();
+}
+
+window.addEventListener('click', closeAllMenus);
+
+window.addEventListener('keydown', (e) => {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
+  if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); cmdDelete(); }
+  if (e.key === 'Escape') { closeModal(); closeAllMenus(); }
+  if (e.ctrlKey && e.key.toLowerCase() === 'z') { e.preventDefault(); cmdUndo(); }
+  if (e.ctrlKey && e.key.toLowerCase() === 'y') { e.preventDefault(); cmdRedo(); }
+  if (e.ctrlKey && e.key.toLowerCase() === 'i') { e.preventDefault(); openFloatingWin('win-properties'); }
+  if (e.ctrlKey && e.key.toLowerCase() === 'd') { e.preventDefault(); cmdDuplicate(); }
+  if (e.key === ' ') { e.preventDefault(); state.running ? stopSim() : runSim(); }
+});
+
+function formatNum(val) {
+  if (typeof val !== 'number' || Number.isNaN(val)) return '0';
+  return val.toFixed(state.decimalDigits);
+}
+
+function updateUIReadouts() {
+  document.getElementById('status-time').textContent = `Time: ${state.time.toFixed(2)} s`;
+}
+
+function setStatus(msg) {
+  document.getElementById('status-msg').textContent = msg;
+}
+
+function initDefaultScene() {
+  performNewReset();
+  createBody({ name: 'Body[1]', shape: 'rect', x: 0, y: 2, width: 1, height: 1, mass: 2, color: '#99ccff' });
+  createBody({ name: 'Body[2]', shape: 'rect', x: 0, y: -1, width: 12, height: 0.5, anchored: true, color: '#c0c0c0' });
+  render();
+}
+
+['win-properties', 'win-appearance', 'win-geometry'].forEach(id => {
+  makeDraggable(document.getElementById(id));
+});
+
+resizeCanvas();
+initDefaultScene();
+</script>
+</body>
+</html>
